@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
+export JAVA_HOME="$HOME/.jdk/temurin-21"
+export ANDROID_HOME="$HOME/Android/Sdk"
+export PATH="$JAVA_HOME/bin:$HOME/flutter/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+
 # ==============================================================================
 # Helper Script: Buat Rilis & Memicu GitHub Actions untuk Build APK Otomatis
 # Contoh: ./release.sh 1.0.1 "Perbaikan tampilan soal dan stabilitas jaringan"

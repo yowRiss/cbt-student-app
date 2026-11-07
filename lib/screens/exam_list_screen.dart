@@ -59,7 +59,6 @@ class _ExamListScreenState extends State<ExamListScreen> {
 
   Future<void> _handleStartExam(ExamModel exam) async {
     try {
-      // 1. If exam has no active session, ask for token
       if (exam.sessionToken == null || exam.sessionToken!.isEmpty) {
         final token = await showDialog<String>(
           context: context,
@@ -67,20 +66,17 @@ class _ExamListScreenState extends State<ExamListScreen> {
           builder: (_) => ExamTokenDialog(examTitle: exam.title),
         );
 
-        if (token == null) return; // User cancelled
+        if (token == null) return;
 
-        // Enter exam token
         _showLoadingOverlay();
         await ApiClient.enterExam(exam.id, token);
 
-        // Start session
         final startRes = await ApiClient.startExam(exam.id);
         _hideLoadingOverlay();
 
         final sessionToken = startRes['token'] as String;
         _navigateToExamTaking(exam, sessionToken);
       } else {
-        // Resume active session
         _navigateToExamTaking(exam, exam.sessionToken!);
       }
     } catch (e) {
@@ -88,7 +84,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: Colors.red.shade800,
+            backgroundColor: const Color(0xFFDC2626),
             content: Text(e.toString()),
           ),
         );
@@ -107,7 +103,6 @@ class _ExamListScreenState extends State<ExamListScreen> {
         ),
       ),
     ).then((_) {
-      // Refresh exam list when returning
       _fetchExams();
     });
   }
@@ -132,15 +127,16 @@ class _ExamListScreenState extends State<ExamListScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Keluar Aplikasi?'),
-        content: const Text('Apakah Anda yakin ingin keluar dari akun ini?'),
+        content: const Text('Apakah Anda yakin ingin keluar dari akun ujian siswa ini?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Keluar', style: TextStyle(color: Colors.white)),
           ),
@@ -162,91 +158,168 @@ class _ExamListScreenState extends State<ExamListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Slate 50
+      backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text('Daftar Ujian', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1E3A8A),
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.school_rounded, color: Color(0xFF1E40AF), size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'CBT Siswa',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                Text(
+                  'Ruang Ujian Sekolah',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Segarkan',
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF475569)),
+            tooltip: 'Segarkan Ujian',
             onPressed: _fetchExams,
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626)),
             tooltip: 'Keluar',
             onPressed: _handleLogout,
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: _fetchExams,
         child: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
           children: [
-            // Student Profile Banner
+            // Student Profile Card
             if (_user != null) ...[
-              Card(
-                elevation: 0,
-                color: const Color(0xFFEFF6FF), // Blue 50
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Color(0xFFBFDBFE)),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E40AF), Color(0xFF2563EB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1E40AF).withValues(alpha: 0.2),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Color(0xFF1E3A8A),
-                        child: Icon(Icons.person, color: Colors.white, size: 28),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _user!.name,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E293B),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'NIS: ${_user!.studentNumber ?? "-"} | Kelas: ${_user!.studentClass ?? "-"}',
-                              style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
-                            ),
-                          ],
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      child: Text(
+                        _user!.name.isNotEmpty ? _user!.name.substring(0, 1).toUpperCase() : 'S',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _user!.name,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'NIS: ${_user!.studentNumber ?? "-"}',
+                                  style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'Kelas: ${_user!.studentClass ?? "-"}',
+                                  style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
             ],
 
-            const Text(
-              'Jadwal Ujian Tersedia',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F172A),
-              ),
+            // Section Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Daftar Ujian Aktif',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                Text(
+                  '${_exams.length} Ujian',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-            // Loading / Error / List
+            // Content State
             if (_isLoading) ...[
               const Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
+                  padding: EdgeInsets.symmetric(vertical: 60),
                   child: CircularProgressIndicator(),
                 ),
               ),
@@ -256,17 +329,22 @@ class _ExamListScreenState extends State<ExamListScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
                   child: Column(
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 12),
+                      const Icon(Icons.wifi_off_rounded, size: 52, color: Color(0xFFDC2626)),
+                      const SizedBox(height: 14),
                       Text(
                         _errorMessage!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.black87),
+                        style: const TextStyle(color: Color(0xFF475569), fontSize: 14),
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton(
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E40AF),
+                          foregroundColor: Colors.white,
+                        ),
                         onPressed: _fetchExams,
-                        child: const Text('Coba Lagi'),
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('Coba Lagi'),
                       ),
                     ],
                   ),
@@ -275,14 +353,26 @@ class _ExamListScreenState extends State<ExamListScreen> {
             ] else if (_exams.isEmpty) ...[
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 60),
+                  padding: const EdgeInsets.symmetric(vertical: 70),
                   child: Column(
                     children: [
-                      Icon(Icons.assignment_turned_in_outlined, size: 56, color: Colors.grey.shade400),
-                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE2E8F0),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.event_note_rounded, size: 48, color: Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 16),
                       const Text(
-                        'Tidak ada jadwal ujian aktif saat ini.',
-                        style: TextStyle(fontSize: 15, color: Colors.black54),
+                        'Belum Ada Ujian Aktif',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Silakan tunggu instruksi guru pengawas di ruangan.',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                       ),
                     ],
                   ),
@@ -301,72 +391,111 @@ class _ExamListScreenState extends State<ExamListScreen> {
     final bool isSessionActive = exam.sessionStatus == 'in_progress';
 
     return Card(
-      elevation: 1,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 14),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Top Row (Subject Badge & Active Status)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   child: Text(
-                    exam.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
-                    ),
+                    exam.subject ?? 'Mata Pelajaran',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E40AF)),
                   ),
                 ),
-                if (exam.subject != null)
+                if (isSessionActive)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(6),
+                      color: const Color(0xFFD1FAE5),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
-                      exam.subject!,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                    child: const Row(
+                      children: [
+                        CircleAvatar(radius: 3, backgroundColor: Color(0xFF059669)),
+                        SizedBox(width: 5),
+                        Text(
+                          'Sedang Berjalan',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                        ),
+                      ],
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
+
+            // Exam Title
+            Text(
+              exam.title,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F172A),
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Metrics (Duration, Question Count)
             Row(
               children: [
-                const Icon(Icons.timer_outlined, size: 16, color: Colors.black54),
-                const SizedBox(width: 4),
-                Text('${exam.durationMinutes} Menit', style: const TextStyle(fontSize: 12, color: Colors.black87)),
-                const SizedBox(width: 16),
-                const Icon(Icons.help_outline, size: 16, color: Colors.black54),
-                const SizedBox(width: 4),
-                Text('${exam.questionCount} Soal', style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                _buildInfoChip(Icons.schedule_rounded, '${exam.durationMinutes} Menit'),
+                const SizedBox(width: 12),
+                _buildInfoChip(Icons.format_list_numbered_rounded, '${exam.questionCount} Soal'),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
+
+            // Action Button
             SizedBox(
               width: double.infinity,
+              height: 46,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isSessionActive ? const Color(0xFF059669) : const Color(0xFF1E3A8A),
+                  backgroundColor: isSessionActive ? const Color(0xFF059669) : const Color(0xFF1E40AF),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () => _handleStartExam(exam),
-                icon: Icon(isSessionActive ? Icons.play_arrow : Icons.login),
+                icon: Icon(isSessionActive ? Icons.play_arrow_rounded : Icons.login_rounded, size: 18),
                 label: Text(
                   isSessionActive ? 'LANJUTKAN UJIAN' : 'MULAI UJIAN',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.3),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF64748B)),
+          const SizedBox(width: 4),
+          Text(text, style: const TextStyle(fontSize: 12, color: Color(0xFF475569), fontWeight: FontWeight.w500)),
+        ],
       ),
     );
   }

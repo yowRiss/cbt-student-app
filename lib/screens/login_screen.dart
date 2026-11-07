@@ -23,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Otomatis cek update terbaru via GitHub Release saat aplikasi dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateCheckerService.checkAndShowDialog(context);
     });
@@ -74,22 +73,28 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Pengaturan Server CBT'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.dns_outlined, color: Color(0xFF1E40AF)),
+            SizedBox(width: 10),
+            Text('Pengaturan Server CBT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Masukkan alamat IP atau URL server komputer sekolah:',
-              style: TextStyle(fontSize: 13, color: Colors.black87),
+              'Masukkan alamat IP server CBT komputer sekolah (LAN Wi-Fi):',
+              style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             TextField(
               controller: serverController,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
                 hintText: 'http://192.168.1.100:8000/api/v1',
-                labelText: 'URL Server',
+                labelText: 'URL Server CBT',
                 isDense: true,
               ),
             ),
@@ -98,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.system_update_alt, color: Color(0xFF1E3A8A)),
+              leading: const Icon(Icons.system_update_alt, color: Color(0xFF1E40AF)),
               title: const Text('Cek Pembaruan Versi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               subtitle: const Text('Versi saat ini: v${AppConstants.appVersion}', style: TextStyle(fontSize: 11)),
               trailing: TextButton(
@@ -123,14 +128,19 @@ class _LoginScreenState extends State<LoginScreen> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E40AF),
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
               await LocalExamStorage.setBaseUrl(serverController.text);
               if (ctx.mounted) {
                 Navigator.pop(ctx);
               }
               if (mounted) {
+                setState(() {});
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Server URL berhasil disimpan.')),
+                  const SnackBar(content: Text('Server URL berhasil diperbarui.')),
                 );
               }
             },
@@ -143,156 +153,252 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentBaseUrl = LocalExamStorage.getBaseUrl();
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9), // Slate 100
-      appBar: AppBar(
-        title: const Text('CBT Ulangan SD', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1E3A8A), // Blue 900
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Atur Alamat Server',
-            onPressed: _showServerSettings,
-          ),
-        ],
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Icon / Logo
-                    const Center(
-                      child: CircleAvatar(
-                        radius: 36,
-                        backgroundColor: Color(0xFFDBEAFE),
-                        child: Icon(Icons.school, size: 40, color: Color(0xFF1E3A8A)),
-                      ),
+      backgroundColor: const Color(0xFFF1F5F9),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Modern Hero Icon
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Masuk Ujian Siswa',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1E40AF).withValues(alpha: 0.25),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Silakan masukkan NIS atau Email dan Password yang diberikan oleh guru/sekolah.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Error Message
-                    if (_errorMessage != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEE2E2),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFFCA5A5)),
-                        ),
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: Color(0xFF991B1B), fontSize: 13),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
                     ],
-
-                    // NIS / Email
-                    TextFormField(
-                      controller: _identifierController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: 'NIS / Email Siswa',
-                        prefixIcon: const Icon(Icons.person_outline),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'NIS / Email tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _handleLogin(),
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      validator: (val) {
-                        if (val == null || val.isEmpty) {
-                          return 'Password tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Login Button
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E3A8A),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: _isLoading ? null : _handleLogin,
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Text(
-                                'MASUK UJIAN',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                      ),
-                    ),
-                  ],
+                  ),
+                  child: const Icon(Icons.school_rounded, size: 48, color: Colors.white),
                 ),
-              ),
+                const SizedBox(height: 20),
+
+                // Title & Subtitle
+                const Text(
+                  'CBT Ulangan SD',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Sistem Ujian Terstandar & Anti-Curang',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Server Status Pill
+                InkWell(
+                  onTap: _showServerSettings,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF10B981), // Emerald online dot
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          currentBaseUrl.replaceAll('http://', '').replaceAll('/api/v1', ''),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.edit, size: 12, color: Color(0xFF64748B)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Main Card Form
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Masuk Akun Siswa',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Gunakan NIS atau email siswa untuk memulai ujian.',
+                            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Error alert
+                          if (_errorMessage != null) ...[
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF2F2),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFFCA5A5)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error_outline, size: 20, color: Color(0xFFDC2626)),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      _errorMessage!,
+                                      style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // Input NIS / Email
+                          TextFormField(
+                            controller: _identifierController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(
+                              labelText: 'NIS / Email Siswa',
+                              hintText: 'Contoh: 123456 atau siswa@sekolah.id',
+                              prefixIcon: Icon(Icons.badge_outlined, color: Color(0xFF64748B)),
+                            ),
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) {
+                                return 'NIS / Email wajib diisi';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Input Password
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _handleLogin(),
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF64748B)),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                  color: const Color(0xFF64748B),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            validator: (val) {
+                              if (val == null || val.isEmpty) {
+                                return 'Password wajib diisi';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Login Button
+                          SizedBox(
+                            height: 50,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E40AF),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: _isLoading ? null : _handleLogin,
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 22,
+                                      width: 22,
+                                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                                    )
+                                  : const Text(
+                                      'MASUK UJIAN',
+                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Version Chip & Check update
+                InkWell(
+                  onTap: () => UpdateCheckerService.checkAndShowDialog(context, manualCheck: true),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.verified_outlined, size: 14, color: Color(0xFF64748B)),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'CBT Siswa v${AppConstants.appVersion}',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('Cek Update', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

@@ -10,68 +10,107 @@ class ExamResultScreen extends StatelessWidget {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: const Color(0xFFF1F5F9),
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          backgroundColor: const Color(0xFF1E3A8A),
-          foregroundColor: Colors.white,
-          title: const Text('Status Ujian'),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          title: const Text(
+            'Status Ujian',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
+          ),
         ),
         body: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(32.0),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 36.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircleAvatar(
-                      radius: 44,
-                      backgroundColor: Color(0xFFD1FAE5),
-                      child: Icon(Icons.check_circle, size: 54, color: Color(0xFF059669)),
+                    // Celebratory Success Icon
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD1FAE5),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.check_circle_rounded,
+                        size: 56,
+                        color: Color(0xFF059669),
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
+
+                    // Main Title
                     const Text(
                       'Ujian Selesai!',
                       style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
                         color: Color(0xFF0F172A),
+                        letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      examTitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF475569),
+
+                    // Exam Title Chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                      ),
+                      child: Text(
+                        examTitle,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E40AF),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
+
+                    // Description
                     const Text(
-                      'Semua jawaban Anda telah berhasil disimpan dan dikumpulkan ke server CBT sekolah.',
+                      'Semua lembar jawaban Anda telah berhasil dienkripsi dan dikumpulkan dengan aman ke server CBT sekolah.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                      style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.5),
                     ),
                     const SizedBox(height: 28),
+
+                    // Return Button
                     SizedBox(
                       width: double.infinity,
-                      height: 46,
-                      child: ElevatedButton(
+                      height: 48,
+                      child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E3A8A),
+                          backgroundColor: const Color(0xFF1E40AF),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
                         ),
                         onPressed: () {
-                          Navigator.pop(context); // Back to ExamListScreen
+                          Navigator.pop(context);
                         },
-                        child: const Text('Kembali ke Halaman Utama'),
+                        icon: const Icon(Icons.home_rounded, size: 18),
+                        label: const Text(
+                          'Kembali ke Halaman Utama',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
                       ),
                     ),
                   ],
