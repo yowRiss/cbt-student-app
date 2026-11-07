@@ -140,9 +140,26 @@ class UpdateCheckerService {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Setelah selesai diunduh, klik file pada bilah notifikasi HP Anda untuk memasang.',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFFDC2626)),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'PENTING: Jika muncul pesan "Aplikasi tidak terpasang / App not installed", harap hapus (uninstall) aplikasi versi lama di HP terlebih dahulu sebelum memasang versi baru.',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF991B1B), height: 1.3),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

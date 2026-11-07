@@ -28,9 +28,23 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = "cbtkey"
+            keyPassword = "cbtpassword123"
+            storeFile = file("cbt-release.jks")
+            storePassword = "cbtpassword123"
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            val releaseKeystore = file("cbt-release.jks")
+            if (releaseKeystore.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

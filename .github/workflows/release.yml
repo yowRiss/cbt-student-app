@@ -77,9 +77,10 @@ jobs:
             
             ### Cara Pasang di HP Android:
             1. Unduh file **`cbt-student-app-universal.apk`** di bawah.
-            2. Buka file hasil unduhan di HP/tablet Android siswa.
-            3. Jika muncul peringatan izin, pilih *Izinkan dari sumber ini* lalu klik *Install*.
-            4. Buka aplikasi CBT dan mulai ujian.
+            2. **PENTING (Jika Update Muncul "App Not Installed"):** Silakan hapus/uninstall aplikasi CBT versi lama terlebih dahulu dari HP Android Anda sebelum memasang APK baru ini.
+            3. Buka file hasil unduhan di HP/tablet Android siswa.
+            4. Jika muncul peringatan izin, pilih *Izinkan dari sumber ini* lalu klik *Install*.
+            5. Buka aplikasi CBT dan mulai ujian.
           files: |
             cbt-student-app-universal.apk
             cbt-student-app-${{ steps.prep.outputs.tag }}.apk
