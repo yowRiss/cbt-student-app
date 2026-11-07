@@ -45,6 +45,8 @@ jobs:
         run: flutter pub get
 
       - name: 🛠️ Build Universal APK
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+UseG1GC"
         run: |
           flutter build apk --release
 
