@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_constants.dart';
@@ -47,7 +48,7 @@ class ReleaseInfo {
 }
 
 class UpdateCheckerService {
-  /// Membandingkan dua string versi semver (misal: "1.0.1" vs "1.0.0")
+  /// Membandingkan dua string versi semver (misal: "1.1.0" vs "1.0.0")
   static bool isNewerVersion(String latest, String current) {
     try {
       final lParts = latest.split('.').map((e) => int.tryParse(e) ?? 0).toList();
@@ -75,7 +76,7 @@ class UpdateCheckerService {
           'Accept': 'application/vnd.github.v3+json',
           'User-Agent': 'CBT-Student-App',
         },
-      ).timeout(const Duration(seconds: 8));
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -87,19 +88,210 @@ class UpdateCheckerService {
     }
   }
 
+  /// Eksekusi proses unduh APK dengan loading, konfirmasi, dan fallback salin link
+  static Future<void> downloadApk(BuildContext context, ReleaseInfo release) async {
+    final targetUrl = release.apkDownloadUrl ?? release.htmlUrl;
+
+    if (targetUrl == null || targetUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('File APK belum tersedia di rilis GitHub.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
+    // 1. Tampilkan Dialog Konfirmasi Unduhan
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.download_rounded, color: Color(0xFF1E40AF)),
+            SizedBox(width: 10),
+            Text('Konfirmasi Unduhan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Aplikasi browser akan dibuka untuk mengunduh installer APK terbaru:',
+              style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('File: cbt-student-app-universal.apk', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Text('Versi Baru: v${release.cleanVersion}', style: const TextStyle(fontSize: 12, color: Color(0xFF059669), fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Setelah selesai diunduh, klik file pada bilah notifikasi HP Anda untuk memasang.',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF059669),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+            label: const Text('Ya, Buka Browser & Unduh'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !context.mounted) return;
+
+    // 2. Tampilkan Loading Dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF1E40AF)),
+            SizedBox(width: 20),
+            Expanded(
+              child: Text(
+                'Membuka browser dan menyiapkan unduhan APK...',
+                style: TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    bool launched = false;
+    try {
+      final uri = Uri.parse(targetUrl);
+      // Coba mode external application terlebih dahulu
+      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        // Fallback ke platform default jika external gagal
+        launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (_) {
+      launched = false;
+    }
+
+    if (!context.mounted) return;
+    if (Navigator.canPop(context)) Navigator.pop(context); // Tutup loading dialog
+
+    if (launched) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Browser sedang mengunduh file APK. Periksa bilah notifikasi HP Anda.'),
+          backgroundColor: Color(0xFF059669),
+          duration: Duration(seconds: 5),
+        ),
+      );
+    } else {
+      // Jika browser tidak dapat dibuka otomatis, berikan dialog dengan tombol salin link
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Tautan Unduhan Langsung'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Browser otomatis tidak dapat dibuka. Silakan salin tautan berikut dan buka di Google Chrome atau browser HP Anda:',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              SelectableText(
+                targetUrl,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF1E40AF), fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Tutup'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: targetUrl));
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Tautan unduhan berhasil disalin ke clipboard!')),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded, size: 16),
+              label: const Text('Salin Link Unduhan'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   /// Cek update dan tampilkan dialog jika ada versi baru
   static Future<void> checkAndShowDialog(
     BuildContext context, {
     bool manualCheck = false,
   }) async {
+    // Jika manual check, tampilkan loading dialog
+    if (manualCheck) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF1E40AF)),
+              SizedBox(width: 20),
+              Expanded(
+                child: Text('Memeriksa rilis terbaru di GitHub...'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final release = await getLatestRelease();
 
     if (!context.mounted) return;
+    if (manualCheck && Navigator.canPop(context)) {
+      Navigator.pop(context); // Tutup loading dialog manual check
+    }
 
     if (release == null) {
       if (manualCheck) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak dapat memeriksa pembaruan. Periksa koneksi internet.')),
+          const SnackBar(
+            content: Text('Tidak dapat memeriksa pembaruan. Periksa koneksi internet atau Wi-Fi.'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
         );
       }
       return;
@@ -112,10 +304,10 @@ class UpdateCheckerService {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: const Row(
             children: [
-              Icon(Icons.system_update, color: Color(0xFF1E3A8A)),
+              Icon(Icons.system_update_rounded, color: Color(0xFF1E40AF)),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -131,10 +323,10 @@ class UpdateCheckerService {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: const Color(0xFFBFDBFE)),
                   ),
                   child: Row(
@@ -149,7 +341,7 @@ class UpdateCheckerService {
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E3A8A),
+                          color: Color(0xFF1E40AF),
                         ),
                       ),
                     ],
@@ -195,16 +387,11 @@ class UpdateCheckerService {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              onPressed: () async {
-                final targetUrl = release.apkDownloadUrl ?? release.htmlUrl;
-                if (targetUrl != null) {
-                  final uri = Uri.parse(targetUrl);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                }
+              onPressed: () {
+                Navigator.pop(ctx);
+                downloadApk(context, release);
               },
-              icon: const Icon(Icons.download, size: 18),
+              icon: const Icon(Icons.download_rounded, size: 18),
               label: const Text('Unduh APK Baru'),
             ),
           ],
