@@ -73,12 +73,12 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.dns_outlined, color: Color(0xFF1E40AF)),
+            Icon(Icons.dns_rounded, color: Color(0xFF0F172A)),
             SizedBox(width: 10),
-            Text('Pengaturan Server CBT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Pengaturan Server CBT', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
@@ -98,21 +98,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 isDense: true,
               ),
             ),
-            const SizedBox(height: 16),
-            const Divider(),
-            ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.system_update_alt, color: Color(0xFF1E40AF)),
-              title: const Text('Cek Pembaruan Versi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              subtitle: const Text('Versi saat ini: v${AppConstants.appVersion}', style: TextStyle(fontSize: 11)),
-              trailing: TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  UpdateCheckerService.checkAndShowDialog(context, manualCheck: true);
-                },
-                child: const Text('Cek Sekarang'),
-              ),
+            const SizedBox(height: 10),
+            const Text(
+              'Pastikan HP/tablet Anda terhubung ke Wi-Fi sekolah yang sama.',
+              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
             ),
           ],
         ),
@@ -129,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E40AF),
+              backgroundColor: const Color(0xFF0F172A),
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
@@ -156,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final currentBaseUrl = LocalExamStorage.getBaseUrl();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -164,48 +153,38 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Modern Hero Icon
+                // Architectural Emblem
                 Container(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF1E40AF).withValues(alpha: 0.25),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF334155), width: 1.5),
                   ),
-                  child: const Icon(Icons.school_rounded, size: 48, color: Colors.white),
+                  child: const Icon(Icons.school_rounded, size: 40, color: Colors.white),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
 
                 // Title & Subtitle
                 const Text(
-                  'CBT Ulangan SD',
+                  'CBT ULANGAN SD',
                   style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
                     color: Color(0xFF0F172A),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 const Text(
-                  'Sistem Ujian Terstandar & Anti-Curang',
+                  'Platform Ujian Siswa Terpadu & Aman',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     color: Color(0xFF64748B),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
 
                 // Server Status Pill
                 InkWell(
@@ -216,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -235,17 +214,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
                         ),
                         const SizedBox(width: 6),
-                        const Icon(Icons.edit, size: 12, color: Color(0xFF64748B)),
+                        const Icon(Icons.settings_outlined, size: 13, color: Color(0xFF64748B)),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 22),
 
                 // Main Card Form
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: const EdgeInsets.all(22.0),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -254,17 +233,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text(
                             'Masuk Akun Siswa',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E293B),
+                              color: Color(0xFF0F172A),
                             ),
                           ),
                           const SizedBox(height: 4),
                           const Text(
-                            'Gunakan NIS atau email siswa untuk memulai ujian.',
-                            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                            'Gunakan NISN atau email siswa untuk memulai ujian.',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 18),
 
                           // Error alert
                           if (_errorMessage != null) ...[
@@ -277,38 +256,38 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.error_outline, size: 20, color: Color(0xFFDC2626)),
-                                  const SizedBox(width: 10),
+                                  const Icon(Icons.error_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                                  const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       _errorMessage!,
-                                      style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 13),
+                                      style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 12, fontWeight: FontWeight.w500),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
                           ],
 
-                          // Input NIS / Email
+                          // Input NISN / Email
                           TextFormField(
                             controller: _identifierController,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             decoration: const InputDecoration(
-                              labelText: 'NIS / Email Siswa',
-                              hintText: 'Contoh: 123456 atau siswa@sekolah.id',
-                              prefixIcon: Icon(Icons.badge_outlined, color: Color(0xFF64748B)),
+                              labelText: 'NISN / Email Siswa',
+                              hintText: 'Contoh: 100234 atau siswa@sekolah.id',
+                              prefixIcon: Icon(Icons.badge_outlined, color: Color(0xFF64748B), size: 20),
                             ),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) {
-                                return 'NIS / Email wajib diisi';
+                                return 'NISN atau email wajib diisi';
                               }
                               return null;
                             },
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 14),
 
                           // Input Password
                           TextFormField(
@@ -317,12 +296,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => _handleLogin(),
                             decoration: InputDecoration(
-                              labelText: 'Password',
-                              prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF64748B)),
+                              labelText: 'Kata Sandi',
+                              prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF64748B), size: 20),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                                   color: const Color(0xFF64748B),
+                                  size: 20,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -333,19 +313,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             validator: (val) {
                               if (val == null || val.isEmpty) {
-                                return 'Password wajib diisi';
+                                return 'Kata sandi wajib diisi';
                               }
                               return null;
                             },
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
 
                           // Login Button
                           SizedBox(
-                            height: 50,
+                            height: 48,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1E40AF),
+                                backgroundColor: const Color(0xFF0F172A),
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -353,13 +333,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               onPressed: _isLoading ? null : _handleLogin,
                               child: _isLoading
                                   ? const SizedBox(
-                                      height: 22,
-                                      width: 22,
+                                      height: 20,
+                                      width: 20,
                                       child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                                     )
                                   : const Text(
-                                      'MASUK UJIAN',
-                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                                      'MASUK KE SISTEM',
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                                     ),
                             ),
                           ),
@@ -368,12 +348,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Version Chip & Check update
                 InkWell(
                   onTap: () => UpdateCheckerService.checkAndShowDialog(context, manualCheck: true),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     child: Row(
@@ -383,16 +363,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(width: 6),
                         const Text(
                           'CBT Siswa v${AppConstants.appVersion}',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE2E8F0),
+                            color: const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFBFDBFE)),
                           ),
-                          child: const Text('Cek Update', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                          child: const Text(
+                            'Cek Rilis',
+                            style: TextStyle(fontSize: 10, color: Color(0xFF1E40AF), fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ],
                     ),

@@ -25,9 +25,9 @@ class _ExamTokenDialogState extends State<ExamTokenDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Row(
         children: [
-          Icon(Icons.key, color: Color(0xFF1E3A8A)),
+          Icon(Icons.key_rounded, color: Color(0xFF0F172A), size: 22),
           SizedBox(width: 8),
-          Text('Masukkan Token'),
+          Text('Masukkan Token Ujian', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
         ],
       ),
       content: Form(
@@ -36,22 +36,30 @@ class _ExamTokenDialogState extends State<ExamTokenDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Ujian: ${widget.examTitle}',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Text(
+                'Ujian: ${widget.examTitle}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             const Text(
-              'Minta 6 digit token ujian kepada pengawas di ruangan Anda.',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
+              'Silakan minta 6 digit token ujian kepada pengawas di ruangan.',
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             TextFormField(
               controller: _tokenController,
               autofocus: true,
               textCapitalization: TextCapitalization.characters,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 4),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 4, color: Color(0xFF0F172A)),
               decoration: InputDecoration(
                 hintText: 'TOKEN',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -74,7 +82,7 @@ class _ExamTokenDialogState extends State<ExamTokenDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1E3A8A),
+            backgroundColor: const Color(0xFF0F172A),
             foregroundColor: Colors.white,
           ),
           onPressed: () {
@@ -82,7 +90,7 @@ class _ExamTokenDialogState extends State<ExamTokenDialog> {
               Navigator.pop(context, _tokenController.text.trim().toUpperCase());
             }
           },
-          child: const Text('Lanjut'),
+          child: const Text('Mulai'),
         ),
       ],
     );

@@ -37,19 +37,19 @@ class CbtStudentApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB), // Vibrant Modern Blue
-          primary: const Color(0xFF1E40AF),   // Deep Blue
-          secondary: const Color(0xFF0284C7), // Sky Blue Accent
+          seedColor: const Color(0xFF0F172A), // Slate 900 Brand
+          primary: const Color(0xFF0F172A),   // Architectural Dark Slate
+          secondary: const Color(0xFFEA580C), // Sharp Orange Accent
           surface: Colors.white,
           surfaceContainerLowest: Colors.white,
           surfaceContainerLow: const Color(0xFFF8FAFC),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF1F5F9), // Slate 100 soft background
-        fontFamily: 'sans-serif', // Cepat, 100% native tanpa download font eksternal
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC), // Pure Soft Slate 50
+        fontFamily: 'sans-serif', // Native, super-fast, 0 overhead
         cardTheme: CardThemeData(
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
           ),
           color: Colors.white,
@@ -68,17 +68,38 @@ class CbtStudentApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.8),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             elevation: 0,
+            backgroundColor: const Color(0xFF0F172A),
+            foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            textStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
           ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF0F172A),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        dividerTheme: const DividerThemeData(
+          color: Color(0xFFE2E8F0),
+          thickness: 1,
+          space: 1,
         ),
       ),
       home: hasToken ? const ExamListScreen() : const LoginScreen(),

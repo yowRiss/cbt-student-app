@@ -112,7 +112,20 @@ class _ExamListScreenState extends State<ExamListScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+        child: Card(
+          elevation: 2,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF0F172A)),
+                SizedBox(width: 16),
+                Text('Menyiapkan lembar ujian...'),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -158,36 +171,41 @@ class _ExamListScreenState extends State<ExamListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+        ),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(10),
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.school_rounded, color: Color(0xFF1E40AF), size: 22),
+              child: const Icon(Icons.school_rounded, color: Colors.white, size: 18),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'CBT Siswa',
+                  'CBT ULANGAN SD',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.3,
                     color: Color(0xFF0F172A),
                   ),
                 ),
                 Text(
-                  'Ruang Ujian Sekolah',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  'Ruang Ujian Siswa',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -195,16 +213,16 @@ class _ExamListScreenState extends State<ExamListScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF475569)),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF475569), size: 20),
             tooltip: 'Segarkan Ujian',
             onPressed: _fetchExams,
           ),
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626)),
+            icon: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 20),
             tooltip: 'Keluar',
             onPressed: _handleLogout,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
         ],
       ),
       body: RefreshIndicator(
@@ -212,40 +230,30 @@ class _ExamListScreenState extends State<ExamListScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
           children: [
-            // Student Profile Card
+            // Student Profile Card (Architectural Slate)
             if (_user != null) ...[
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1E40AF), Color(0xFF2563EB)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF1E40AF).withValues(alpha: 0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF1E293B)),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 26,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      radius: 22,
+                      backgroundColor: const Color(0xFF1E293B),
                       child: Text(
                         _user!.name.isNotEmpty ? _user!.name.substring(0, 1).toUpperCase() : 'S',
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,7 +261,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
                           Text(
                             _user!.name,
                             style: const TextStyle(
-                              fontSize: 17,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -262,26 +270,28 @@ class _ExamListScreenState extends State<ExamListScreen> {
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: const Color(0xFF1E293B),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(color: const Color(0xFF334155)),
                                 ),
                                 child: Text(
-                                  'NIS: ${_user!.studentNumber ?? "-"}',
-                                  style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+                                  'NISN: ${_user!.studentNumber ?? "-"}',
+                                  style: const TextStyle(fontSize: 11, color: Color(0xFFE2E8F0), fontWeight: FontWeight.w600),
                                 ),
                               ),
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: const Color(0xFF1E293B),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(color: const Color(0xFF334155)),
                                 ),
                                 child: Text(
                                   'Kelas: ${_user!.studentClass ?? "-"}',
-                                  style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(fontSize: 11, color: Color(0xFFE2E8F0), fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ],
@@ -292,7 +302,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
             ],
 
             // Section Header
@@ -302,14 +312,22 @@ class _ExamListScreenState extends State<ExamListScreen> {
                 const Text(
                   'Daftar Ujian Aktif',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF0F172A),
                   ),
                 ),
-                Text(
-                  '${_exams.length} Ujian',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Text(
+                    '${_exams.length} Ujian',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                  ),
                 ),
               ],
             ),
@@ -320,7 +338,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
               const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 60),
-                  child: CircularProgressIndicator(),
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF0F172A)),
                 ),
               ),
             ] else if (_errorMessage != null) ...[
@@ -329,17 +347,17 @@ class _ExamListScreenState extends State<ExamListScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
                   child: Column(
                     children: [
-                      const Icon(Icons.wifi_off_rounded, size: 52, color: Color(0xFFDC2626)),
-                      const SizedBox(height: 14),
+                      const Icon(Icons.wifi_off_rounded, size: 48, color: Color(0xFFDC2626)),
+                      const SizedBox(height: 12),
                       Text(
                         _errorMessage!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Color(0xFF475569), fontSize: 14),
+                        style: const TextStyle(color: Color(0xFF475569), fontSize: 13),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E40AF),
+                          backgroundColor: const Color(0xFF0F172A),
                           foregroundColor: Colors.white,
                         ),
                         onPressed: _fetchExams,
@@ -353,26 +371,27 @@ class _ExamListScreenState extends State<ExamListScreen> {
             ] else if (_exams.isEmpty) ...[
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 70),
+                  padding: const EdgeInsets.symmetric(vertical: 60),
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE2E8F0),
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
                           shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: const Icon(Icons.event_note_rounded, size: 48, color: Color(0xFF64748B)),
+                        child: const Icon(Icons.event_note_rounded, size: 42, color: Color(0xFF64748B)),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       const Text(
                         'Belum Ada Ujian Aktif',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       const Text(
-                        'Silakan tunggu instruksi guru pengawas di ruangan.',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                        'Silakan tunggu instruksi dari guru pengawas di ruangan.',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                       ),
                     ],
                   ),
@@ -391,9 +410,9 @@ class _ExamListScreenState extends State<ExamListScreen> {
     final bool isSessionActive = exam.sessionStatus == 'in_progress';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -402,22 +421,24 @@ class _ExamListScreenState extends State<ExamListScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Text(
                     exam.subject ?? 'Mata Pelajaran',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E40AF)),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                   ),
                 ),
                 if (isSessionActive)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD1FAE5),
-                      borderRadius: BorderRadius.circular(8),
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFA7F3D0)),
                     ),
                     child: const Row(
                       children: [
@@ -432,46 +453,46 @@ class _ExamListScreenState extends State<ExamListScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
             // Exam Title
             Text(
               exam.title,
               style: const TextStyle(
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF0F172A),
                 height: 1.3,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
             // Metrics (Duration, Question Count)
             Row(
               children: [
                 _buildInfoChip(Icons.schedule_rounded, '${exam.durationMinutes} Menit'),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 _buildInfoChip(Icons.format_list_numbered_rounded, '${exam.questionCount} Soal'),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // Action Button
             SizedBox(
               width: double.infinity,
-              height: 46,
+              height: 44,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isSessionActive ? const Color(0xFF059669) : const Color(0xFF1E40AF),
+                  backgroundColor: isSessionActive ? const Color(0xFF059669) : const Color(0xFF0F172A),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () => _handleStartExam(exam),
-                icon: Icon(isSessionActive ? Icons.play_arrow_rounded : Icons.login_rounded, size: 18),
+                icon: Icon(isSessionActive ? Icons.play_arrow_rounded : Icons.login_rounded, size: 17),
                 label: Text(
                   isSessionActive ? 'LANJUTKAN UJIAN' : 'MULAI UJIAN',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.3),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3),
                 ),
               ),
             ),
@@ -483,7 +504,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
 
   Widget _buildInfoChip(IconData icon, String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(6),
@@ -492,9 +513,9 @@ class _ExamListScreenState extends State<ExamListScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF64748B)),
+          Icon(icon, size: 13, color: const Color(0xFF64748B)),
           const SizedBox(width: 4),
-          Text(text, style: const TextStyle(fontSize: 12, color: Color(0xFF475569), fontWeight: FontWeight.w500)),
+          Text(text, style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontWeight: FontWeight.w600)),
         ],
       ),
     );
