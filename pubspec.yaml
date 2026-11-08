@@ -1,7 +1,7 @@
 name: cbt_mobile
 description: "A lightweight, secure CBT (Computer Based Test) application for elementary students."
 publish_to: 'none'
-version: 1.4.2+12
+version: 1.4.3+13
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

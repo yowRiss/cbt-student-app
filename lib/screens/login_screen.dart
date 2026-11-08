@@ -86,22 +86,43 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Masukkan alamat IP server CBT komputer sekolah (LAN Wi-Fi):',
+              'Aplikasi secara default menggunakan Server Demo Online Cloudflare:',
               style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: serverController,
               decoration: const InputDecoration(
-                hintText: 'http://192.168.1.100:8000/api/v1',
+                hintText: 'https://demo-cbt.nerct.dev/api/v1',
                 labelText: 'URL Server CBT',
                 isDense: true,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             const Text(
-              'Pastikan HP/tablet Anda terhubung ke Wi-Fi sekolah yang sama.',
-              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+              'Pilihan Cepat Server:',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                ActionChip(
+                  avatar: const Icon(Icons.cloud_done_rounded, size: 14, color: Color(0xFF2563EB)),
+                  label: const Text('Demo Online', style: TextStyle(fontSize: 11)),
+                  onPressed: () {
+                    serverController.text = AppConstants.defaultBaseUrl;
+                  },
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.wifi_rounded, size: 14, color: Color(0xFFD97706)),
+                  label: const Text('LAN Server (192.168.18.28)', style: TextStyle(fontSize: 11)),
+                  onPressed: () {
+                    serverController.text = AppConstants.localFallbackBaseUrl;
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -110,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () {
               serverController.text = AppConstants.defaultBaseUrl;
             },
-            child: const Text('Reset Default'),
+            child: const Text('Reset Demo'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),

@@ -11,7 +11,15 @@ class LocalExamStorage {
 
   // Base URL
   static String getBaseUrl() {
-    return _prefs?.getString(AppConstants.keyBaseUrl) ?? AppConstants.defaultBaseUrl;
+    final saved = _prefs?.getString(AppConstants.keyBaseUrl);
+    // Jika belum pernah disetel atau masih tersimpan IP lokal lama, arahkan default ke demo server
+    if (saved == null ||
+        saved.isEmpty ||
+        saved == 'http://192.168.18.28/api/v1' ||
+        saved == 'http://192.168.1.100:8000/api/v1') {
+      return AppConstants.defaultBaseUrl;
+    }
+    return saved;
   }
 
   static Future<void> setBaseUrl(String url) async {
