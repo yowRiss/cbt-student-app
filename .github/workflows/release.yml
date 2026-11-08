@@ -35,8 +35,15 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 🐘 Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: 🐘 Ensure Gradle Wrapper Distribution (Fast Mirror via gh)
+        run: |
+          mkdir -p /tmp/gradle-dist
+          gh release download v9.3.1 --repo gradle/gradle-distributions --pattern "gradle-9.3.1-bin.zip" --dir /tmp/gradle-dist
+          python3 -m http.server 8089 --directory /tmp/gradle-dist &
+          sleep 1
+          sed -i 's|distributionUrl=.*|distributionUrl=http\\://127.0.0.1:8089/gradle-9.3.1-bin.zip|' android/gradle/wrapper/gradle-wrapper.properties
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐦 Setup Flutter
         uses: subosito/flutter-action@v2
