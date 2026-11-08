@@ -3,7 +3,7 @@ import '../core/api/api_client.dart';
 import '../core/constants/app_constants.dart';
 import '../core/services/update_checker_service.dart';
 import '../core/storage/local_exam_storage.dart';
-import 'exam_list_screen.dart';
+import 'student_home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -52,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const ExamListScreen()),
+        MaterialPageRoute(builder: (_) => const StudentHomeScreen()),
       );
     } catch (e) {
       setState(() {

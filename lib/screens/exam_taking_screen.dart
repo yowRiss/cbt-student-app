@@ -355,7 +355,11 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => ExamResultScreen(examTitle: widget.exam.title),
+        builder: (_) => ExamResultScreen(
+          examTitle: widget.exam.title,
+          examId: widget.exam.id,
+          sessionToken: widget.sessionToken,
+        ),
       ),
     );
   }

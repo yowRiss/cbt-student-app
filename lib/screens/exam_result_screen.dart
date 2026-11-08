@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'exam_result_detail_screen.dart';
 
 class ExamResultScreen extends StatelessWidget {
   final String examTitle;
+  final dynamic examId;
+  final String? sessionToken;
 
-  const ExamResultScreen({super.key, required this.examTitle});
+  const ExamResultScreen({
+    super.key,
+    required this.examTitle,
+    this.examId,
+    this.sessionToken,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -90,16 +98,49 @@ class ExamResultScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 26),
 
+                    // View Result Detail Button
+                    if (sessionToken != null || examId != null) ...[
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEA580C),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            elevation: 0,
+                          ),
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ExamResultDetailScreen(
+                                  examId: examId,
+                                  sessionToken: sessionToken,
+                                  initialExamTitle: examTitle,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.analytics_rounded, size: 17),
+                          label: const Text(
+                            'LIHAT RINCIAN HASIL & NILAI',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+
                     // Return Button
                     SizedBox(
                       width: double.infinity,
                       height: 46,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0F172A),
-                          foregroundColor: Colors.white,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF0F172A),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
                         ),
                         onPressed: () {
                           Navigator.pop(context);

@@ -76,6 +76,66 @@ class ApiClient {
     await LocalExamStorage.clearAuth();
   }
 
+  // Student: Get Full Dashboard Data
+  static Future<Map<String, dynamic>> getStudentDashboard() async {
+    try {
+      final response = await _client.get(
+        _buildUri('student/dashboard'),
+        headers: _buildHeaders(),
+      ).timeout(AppConstants.timeout);
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return (data['data'] ?? data) as Map<String, dynamic>;
+      } else {
+        throw ApiException(data['message'] ?? 'Gagal memuat dashboard siswa.', response.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Gagal terhubung ke dashboard: $e');
+    }
+  }
+
+  // Student: Get Exam Result Detail
+  static Future<Map<String, dynamic>> getExamResult(dynamic examId) async {
+    try {
+      final response = await _client.get(
+        _buildUri('student/exams/$examId/result'),
+        headers: _buildHeaders(),
+      ).timeout(AppConstants.timeout);
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return (data['data'] ?? data) as Map<String, dynamic>;
+      } else {
+        throw ApiException(data['message'] ?? 'Gagal memuat rincian nilai.', response.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Gagal memuat rincian hasil: $e');
+    }
+  }
+
+  // Student: Get Session Result Detail
+  static Future<Map<String, dynamic>> getSessionResult(String sessionToken) async {
+    try {
+      final response = await _client.get(
+        _buildUri('student/exam-sessions/$sessionToken/result'),
+        headers: _buildHeaders(),
+      ).timeout(AppConstants.timeout);
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return (data['data'] ?? data) as Map<String, dynamic>;
+      } else {
+        throw ApiException(data['message'] ?? 'Gagal memuat rincian hasil sesi.', response.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Gagal memuat hasil sesi: $e');
+    }
+  }
+
   // Student: Get Exams List
   static Future<List<dynamic>> getStudentExams() async {
     try {
@@ -86,9 +146,12 @@ class ApiClient {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        // Backend returns either list of exams or dashboard data containing exams
         if (data['data'] is List) {
           return data['data'] as List<dynamic>;
+        } else if (data['data'] is Map && data['data']['available_exams'] is List) {
+          final avail = data['data']['available_exams'] as List<dynamic>;
+          final upcoming = (data['data']['upcoming_exams'] as List<dynamic>?) ?? [];
+          return [...avail, ...upcoming];
         } else if (data['exams'] is List) {
           return data['exams'] as List<dynamic>;
         } else if (data['data'] != null && data['data']['exams'] is List) {

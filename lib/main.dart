@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/storage/local_exam_storage.dart';
-import 'screens/exam_list_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/student_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -102,7 +102,7 @@ class CbtStudentApp extends StatelessWidget {
           space: 1,
         ),
       ),
-      home: hasToken ? const ExamListScreen() : const LoginScreen(),
+      home: hasToken ? const StudentHomeScreen() : const LoginScreen(),
     );
   }
 }
