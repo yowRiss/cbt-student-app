@@ -1,6 +1,6 @@
 class AppConstants {
   // App Version
-  static const String appVersion = '1.3.1';
+  static const String appVersion = '1.3.2';
 
   // GitHub Auto-Update Configuration
   static const String githubOwner = 'yowRiss';
@@ -9,7 +9,7 @@ class AppConstants {
       'https://api.github.com/repos/$githubOwner/$githubRepo/releases/latest';
 
   // Default server URL. Siswa atau pengawas dapat mengubah alamat IP server langsung dari aplikasi.
-  static const String defaultBaseUrl = 'http://192.168.1.100:8000/api/v1';
+  static const String defaultBaseUrl = 'http://192.168.18.28/api/v1';
 
   // Shared Preferences keys
   static const String keyBaseUrl = 'cbt_base_url';
