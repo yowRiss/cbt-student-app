@@ -1,4 +1,4 @@
-name: Build & Release CBT Universal APK
+name: Build & Release CBT Mobile APKs
 
 on:
   push:
@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build Universal APK & Create Release
+    name: Build Split & Universal APKs
     runs-on: ubuntu-latest
 
     steps:
@@ -35,6 +35,9 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: 🐘 Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: 🐦 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -44,10 +47,14 @@ jobs:
       - name: 📦 Install Flutter Dependencies
         run: flutter pub get
 
-      - name: 🛠️ Build Universal APK
+      - name: 🛠️ Build Split Per ABI & Universal APKs
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+UseG1GC"
         run: |
+          echo "🔨 Building Split per ABI APKs..."
+          flutter build apk --release --split-per-abi
+
+          echo "🔨 Building Universal APK..."
           flutter build apk --release
 
       - name: 🏷️ Determine Release Tag & Prepare Assets
@@ -60,12 +67,17 @@ jobs:
           fi
           echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
 
-          # Rename APK for clean download
-          BUILD_APK="build/app/outputs/flutter-apk/app-release.apk"
-          cp "$BUILD_APK" "cbt-student-app-$TAG_NAME.apk"
-          cp "$BUILD_APK" "cbt-student-app-universal.apk"
+          # Rename split APKs for clean direct downloads
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk cbt-student-app-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk cbt-student-app-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk cbt-student-app-x86_64.apk
 
-      - name: 🚀 Publish GitHub Release with APK
+          # Universal APK
+          cp build/app/outputs/flutter-apk/app-release.apk cbt-student-app-universal.apk
+
+          ls -lh cbt-student-app-*.apk
+
+      - name: 🚀 Publish GitHub Release with APKs
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.prep.outputs.tag }}
@@ -73,17 +85,24 @@ jobs:
           body: |
             ## Pembaruan Aplikasi CBT Siswa (${{ steps.prep.outputs.tag }})
             
-            ${{ github.event.inputs.notes || 'Pembaruan aplikasi CBT dengan perbaikan performa dan kestabilan ujian.' }}
+            ${{ github.event.inputs.notes || 'Pembaruan aplikasi CBT dengan optimasi ukuran file per arsitektur HP (Split per ABI).' }}
             
-            ### Cara Pasang di HP Android:
-            1. Unduh file **`cbt-student-app-universal.apk`** di bawah.
-            2. **PENTING (Jika Update Muncul "App Not Installed"):** Silakan hapus/uninstall aplikasi CBT versi lama terlebih dahulu dari HP Android Anda sebelum memasang APK baru ini.
-            3. Buka file hasil unduhan di HP/tablet Android siswa.
-            4. Jika muncul peringatan izin, pilih *Izinkan dari sumber ini* lalu klik *Install*.
-            5. Buka aplikasi CBT dan mulai ujian.
+            ### Pilihan File APK Sesuai Tipe HP:
+            - **`cbt-student-app-arm64-v8a.apk`** (Sangat Disarankan, ~9 MB): Untuk HP Android modern (keluaran 2017 ke atas: Samsung, Xiaomi, Oppo, Vivo, Realme, Infinix, dll).
+            - **`cbt-student-app-armeabi-v7a.apk`** (~8 MB): Untuk HP Android lama (32-bit).
+            - **`cbt-student-app-universal.apk`** (~25 MB): Paket lengkap berjalan di semua tipe HP Android tanpa kecuali.
+            - **`cbt-student-app-x86_64.apk`** (~9 MB): Khusus Emulator PC (BlueStacks, LDPlayer, Waydroid) atau Chromebook Intel.
+
+            ### Petunjuk Pemasangan:
+            1. Unduh APK sesuai tipe HP Anda (atau gunakan fitur deteksi otomatis di website).
+            2. **PENTING (Jika Update Muncul "App Not Installed"):** Silakan uninstall aplikasi CBT versi lama terlebih dahulu dari HP sebelum memasang APK baru.
+            3. Izinkan pemasangan aplikasi dari sumber tidak dikenal jika diminta.
+            4. Buka aplikasi CBT dan mulai ujian.
           files: |
+            cbt-student-app-arm64-v8a.apk
+            cbt-student-app-armeabi-v7a.apk
+            cbt-student-app-x86_64.apk
             cbt-student-app-universal.apk
-            cbt-student-app-${{ steps.prep.outputs.tag }}.apk
           generate_release_notes: true
           draft: false
           prerelease: false

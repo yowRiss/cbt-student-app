@@ -52,7 +52,7 @@ git push origin HEAD --tags
 
 echo "=========================================================="
 echo "🎉 Berhasil! Tag $TAG telah didorong ke GitHub."
-echo "GitHub Actions sekarang sedang otomatis mengompilasi APK Universal."
+echo "GitHub Actions sekarang sedang otomatis mengompilasi APK (Split ARM64, ARMeabi-v7a, x86_64, dan Universal)."
 echo "Pantau proses build di:"
 echo "  https://github.com/yowRiss/cbt-student-app/actions"
 echo "Setelah selesai, file APK siap diunduh di:"

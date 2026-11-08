@@ -28,11 +28,32 @@ class ReleaseInfo {
 
     String? apkUrl;
     final assets = json['assets'] as List<dynamic>? ?? [];
+    // Prioritaskan universal APK untuk kompatibilitas in-app update
     for (var asset in assets) {
       final name = (asset['name'] ?? '').toString().toLowerCase();
-      if (name.endsWith('.apk')) {
+      if (name.contains('universal') && name.endsWith('.apk')) {
         apkUrl = asset['browser_download_url'] as String?;
         break;
+      }
+    }
+    // Jika tidak ada universal, pilih arm64-v8a
+    if (apkUrl == null) {
+      for (var asset in assets) {
+        final name = (asset['name'] ?? '').toString().toLowerCase();
+        if (name.contains('arm64') && name.endsWith('.apk')) {
+          apkUrl = asset['browser_download_url'] as String?;
+          break;
+        }
+      }
+    }
+    // Fallback ke sembarang file .apk jika keduanya belum ditemukan
+    if (apkUrl == null) {
+      for (var asset in assets) {
+        final name = (asset['name'] ?? '').toString().toLowerCase();
+        if (name.endsWith('.apk')) {
+          apkUrl = asset['browser_download_url'] as String?;
+          break;
+        }
       }
     }
 
