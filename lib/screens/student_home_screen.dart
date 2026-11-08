@@ -13,18 +13,14 @@ import 'exam_token_dialog.dart';
 import 'login_screen.dart';
 
 class StudentHomeScreen extends StatefulWidget {
-  final int initialTab;
-
-  const StudentHomeScreen({super.key, this.initialTab = 0});
+  const StudentHomeScreen({super.key});
 
   @override
   State<StudentHomeScreen> createState() => _StudentHomeScreenState();
 }
 
-class _StudentHomeScreenState extends State<StudentHomeScreen> {
-  int _currentIndex = 0;
+class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTickerProviderStateMixin {
   UserModel? _user;
-  DashboardSummaryModel? _summary;
   ActiveSessionModel? _activeSession;
   List<ExamModel> _availableExams = [];
   List<ExamModel> _upcomingExams = [];
@@ -33,15 +29,15 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  // Exams tab search & filter
+  // Search filter
   String _searchQuery = '';
-  String _selectedFilter = 'all'; // all, available, upcoming, completed
   final TextEditingController _searchController = TextEditingController();
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialTab;
+    _tabController = TabController(length: 2, vsync: this);
     _loadUser();
     _fetchDashboardData();
   }
@@ -49,6 +45,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -70,44 +67,31 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     try {
       final data = await ApiClient.getStudentDashboard();
 
-      // Parse User Data if available
+      // User data
       if (data['user'] is Map<String, dynamic>) {
         final u = UserModel.fromJson(data['user'] as Map<String, dynamic>);
         await LocalExamStorage.setUserData(data['user'] as Map<String, dynamic>);
         _user = u;
       }
 
-      // Parse Summary
-      if (data['summary'] is Map<String, dynamic>) {
-        _summary = DashboardSummaryModel.fromJson(data['summary'] as Map<String, dynamic>);
-      }
-
-      // Parse Active Session
+      // Active Session
       if (data['active_session'] is Map<String, dynamic>) {
         _activeSession = ActiveSessionModel.fromJson(data['active_session'] as Map<String, dynamic>);
       } else {
         _activeSession = null;
       }
 
-      // Parse Available Exams
+      // Available Exams
       final rawAvailable = (data['available_exams'] as List<dynamic>?) ?? [];
       _availableExams = rawAvailable.map((e) => ExamModel.fromJson(e as Map<String, dynamic>)).toList();
 
-      // Parse Upcoming Exams
+      // Upcoming Exams
       final rawUpcoming = (data['upcoming_exams'] as List<dynamic>?) ?? [];
       _upcomingExams = rawUpcoming.map((e) => ExamModel.fromJson(e as Map<String, dynamic>)).toList();
 
-      // Parse Exam History
+      // Exam History
       final rawHistory = (data['exam_history'] as List<dynamic>?) ?? [];
       _examHistory = rawHistory.map((e) => ExamHistoryModel.fromJson(e as Map<String, dynamic>)).toList();
-
-      // Fallback summary if not provided by backend
-      _summary ??= DashboardSummaryModel(
-        totalAssigned: _availableExams.length + _upcomingExams.length + _examHistory.length,
-        availableCount: _availableExams.length,
-        upcomingCount: _upcomingExams.length,
-        completedCount: _examHistory.length,
-      );
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -124,6 +108,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       String sessionToken = exam.sessionToken ?? '';
 
       if (sessionToken.isEmpty) {
+        // Masuk ujian pakai token jika diperlukan
         if (exam.requiresToken) {
           final token = await showDialog<String>(
             context: context,
@@ -338,63 +323,63 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Color(0xFF475569), size: 20),
-            tooltip: 'Segarkan Data',
+            tooltip: 'Segarkan Ujian',
             onPressed: _fetchDashboardData,
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 20),
-            tooltip: 'Keluar',
-            onPressed: _handleLogout,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF475569), size: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onSelected: (val) {
+              if (val == 'server') {
+                _handleChangeServerIp();
+              } else if (val == 'update') {
+                UpdateCheckerService.checkAndShowDialog(context, manualCheck: true);
+              } else if (val == 'logout') {
+                _handleLogout();
+              }
+            },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'server',
+                child: Row(
+                  children: [
+                    const Icon(Icons.dns_rounded, size: 18, color: Color(0xFF475569)),
+                    const SizedBox(width: 10),
+                    Text('IP Server (${LocalExamStorage.getBaseUrl().replaceAll('http://', '').split('/').first})', style: const TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'update',
+                child: Row(
+                  children: [
+                    Icon(Icons.system_update_rounded, size: 18, color: Color(0xFF475569)),
+                    SizedBox(width: 10),
+                    Text('Cek Update APK (v${AppConstants.appVersion})', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout_rounded, size: 18, color: Color(0xFFDC2626)),
+                    SizedBox(width: 10),
+                    Text('Keluar Akun', style: TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
         ],
       ),
-      body: _buildCurrentTab(),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
-        ),
-        child: NavigationBar(
-          selectedIndex: _currentIndex,
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-          indicatorColor: const Color(0xFFF1F5F9),
-          height: 64,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          onDestinationSelected: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined, size: 20),
-              selectedIcon: Icon(Icons.dashboard_rounded, color: Color(0xFFEA580C), size: 20),
-              label: 'Beranda',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.assignment_outlined, size: 20),
-              selectedIcon: Icon(Icons.assignment_rounded, color: Color(0xFFEA580C), size: 20),
-              label: 'Ujian',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.analytics_outlined, size: 20),
-              selectedIcon: Icon(Icons.analytics_rounded, color: Color(0xFFEA580C), size: 20),
-              label: 'Riwayat & Nilai',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded, size: 20),
-              selectedIcon: Icon(Icons.person_rounded, color: Color(0xFFEA580C), size: 20),
-              label: 'Profil',
-            ),
-          ],
-        ),
-      ),
+      body: _buildBody(),
     );
   }
 
-  Widget _buildCurrentTab() {
+  Widget _buildBody() {
     if (_isLoading) {
       return const Center(
         child: Column(
@@ -402,7 +387,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           children: [
             CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF0F172A)),
             SizedBox(height: 14),
-            Text('Sinkronisasi data siswa...', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+            Text('Memuat daftar ujian...', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
           ],
         ),
       );
@@ -438,712 +423,219 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       );
     }
 
-    switch (_currentIndex) {
-      case 0:
-        return _buildDashboardTab();
-      case 1:
-        return _buildExamsTab();
-      case 2:
-        return _buildHistoryTab();
-      case 3:
-        return _buildProfileTab();
-      default:
-        return _buildDashboardTab();
-    }
-  }
+    final allActiveExams = [..._availableExams, ..._upcomingExams];
 
-  // -------------------------------------------------------------
-  // TAB 1: BERANDA / DASHBOARD
-  // -------------------------------------------------------------
-  Widget _buildDashboardTab() {
-    return RefreshIndicator(
-      onRefresh: _fetchDashboardData,
-      child: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // Student Profile Slate Hero Card
-          _buildStudentHero(),
-          const SizedBox(height: 16),
-
-          // 3 Architectural Summary Cards (1-to-1 match with Web Dashboard)
-          _buildSummaryCardsRow(),
-          const SizedBox(height: 16),
-
-          // Active Exam Banner (if active session exists)
-          if (_activeSession != null) ...[
-            _buildActiveSessionCard(),
-            const SizedBox(height: 16),
-          ],
-
-          // Ujian Tersedia Sekarang
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Ujian Tersedia Sekarang',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-              ),
-              TextButton(
-                onPressed: () => setState(() => _currentIndex = 1),
-                child: const Text('Lihat Semua', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFEA580C))),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          if (_availableExams.isEmpty)
-            _buildEmptyStateCard(
-              icon: Icons.event_available_rounded,
-              title: 'Tidak Ada Ujian Aktif Saat Ini',
-              subtitle: 'Semua jadwal ujian untuk kelas Anda akan muncul di sini saat dibuka oleh guru.',
-            )
-          else
-            ..._availableExams.take(3).map((exam) => _buildExamCard(exam)),
-
-          const SizedBox(height: 16),
-
-          // Riwayat Ujian Terkini
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Hasil & Nilai Terkini',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-              ),
-              TextButton(
-                onPressed: () => setState(() => _currentIndex = 2),
-                child: const Text('Lihat Semua', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFEA580C))),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          if (_examHistory.isEmpty)
-            _buildEmptyStateCard(
-              icon: Icons.history_rounded,
-              title: 'Belum Ada Riwayat Ujian',
-              subtitle: 'Nilai dan hasil ujian yang telah Anda selesaikan akan otomatis tercatat di sini.',
-            )
-          else
-            ..._examHistory.take(3).map((history) => _buildHistoryCard(history)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStudentHero() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1E293B)),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: const Color(0xFF1E293B),
-            child: Text(
-              _user?.name.isNotEmpty == true ? _user!.name.substring(0, 1).toUpperCase() : 'S',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _user?.name ?? 'Siswa CBT',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(5),
-                        border: Border.all(color: const Color(0xFF334155)),
-                      ),
-                      child: Text(
-                        'NISN: ${_user?.studentNumber ?? "-"}',
-                        style: const TextStyle(fontSize: 11, color: Color(0xFFE2E8F0), fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(5),
-                        border: Border.all(color: const Color(0xFF334155)),
-                      ),
-                      child: Text(
-                        'Kelas: ${_user?.studentClass ?? "-"}',
-                        style: const TextStyle(fontSize: 11, color: Color(0xFFE2E8F0), fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCardsRow() {
-    final summary = _summary ?? DashboardSummaryModel(totalAssigned: 0, availableCount: 0, upcomingCount: 0, completedCount: 0);
-
-    return Row(
-      children: [
-        Expanded(
-          child: _buildSummaryCard(
-            title: 'Terdaftar',
-            count: summary.totalAssigned,
-            color: const Color(0xFF0F172A),
-            icon: Icons.list_alt_rounded,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildSummaryCard(
-            title: 'Tersedia',
-            count: summary.availableCount,
-            color: const Color(0xFFEA580C),
-            icon: Icons.play_circle_outline_rounded,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildSummaryCard(
-            title: 'Selesai',
-            count: summary.completedCount,
-            color: const Color(0xFF059669),
-            icon: Icons.task_alt_rounded,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSummaryCard({
-    required String title,
-    required int count,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
-              ),
-              Icon(icon, size: 16, color: color),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$count',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActiveSessionCard() {
-    final active = _activeSession!;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEA580C), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEA580C),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Row(
-                  children: [
-                    CircleAvatar(radius: 3, backgroundColor: Colors.white),
-                    SizedBox(width: 5),
-                    Text(
-                      'SESI SEDANG BERLANGSUNG',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${active.durationMinutes} Menit',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            active.examTitle,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Anda memiliki sesi ujian yang belum diselesaikan. Lanjutkan segera sebelum waktu habis.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), height: 1.4),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEA580C),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () {
-                final dummyExam = ExamModel(
-                  id: active.examId,
-                  title: active.examTitle,
-                  durationMinutes: active.durationMinutes,
-                  questionCount: 0,
-                  status: 'in_progress',
-                  sessionToken: active.token,
-                );
-                _navigateToExamTaking(dummyExam, active.token);
-              },
-              icon: const Icon(Icons.play_arrow_rounded, size: 18),
-              label: const Text('LANJUTKAN UJIAN SEKARANG', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // -------------------------------------------------------------
-  // TAB 2: DAFTAR UJIAN (SEARCH & FILTER TABS)
-  // -------------------------------------------------------------
-  Widget _buildExamsTab() {
-    final allExams = [..._availableExams, ..._upcomingExams];
-
-    // Apply Filter
-    List<ExamModel> filtered = allExams.where((exam) {
-      if (_selectedFilter == 'available') return exam.isActive;
-      if (_selectedFilter == 'upcoming') return exam.isUpcoming;
-      return true;
-    }).toList();
-
-    // Apply Search
+    // Filter by search query
+    List<ExamModel> filteredExams = allActiveExams;
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      filtered = filtered.where((exam) {
+      filteredExams = allActiveExams.where((exam) {
         return exam.title.toLowerCase().contains(q) ||
             (exam.subject?.toLowerCase().contains(q) ?? false) ||
             (exam.teacherName?.toLowerCase().contains(q) ?? false);
       }).toList();
     }
 
-    return RefreshIndicator(
-      onRefresh: _fetchDashboardData,
-      child: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // Search Bar
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Cari mata pelajaran, judul ujian, atau guru...',
-                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF64748B)),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              onChanged: (val) {
-                setState(() => _searchQuery = val);
-              },
-            ),
-          ),
-          const SizedBox(height: 12),
+    List<ExamHistoryModel> filteredHistory = _examHistory;
+    if (_searchQuery.trim().isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filteredHistory = _examHistory.where((h) {
+        return h.examTitle.toLowerCase().contains(q) || (h.teacherName?.toLowerCase().contains(q) ?? false);
+      }).toList();
+    }
 
-          // Filter Chips (Semua, Tersedia, Akan Datang, Selesai)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterChip('Semua Ujian', 'all', allExams.length),
-                const SizedBox(width: 8),
-                _buildFilterChip('Tersedia', 'available', _availableExams.length),
-                const SizedBox(width: 8),
-                _buildFilterChip('Akan Datang', 'upcoming', _upcomingExams.length),
-                const SizedBox(width: 8),
-                _buildFilterChip('Selesai', 'completed', _examHistory.length),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Render list
-          if (_selectedFilter == 'completed') ...[
-            if (_examHistory.isEmpty)
-              _buildEmptyStateCard(
-                icon: Icons.task_alt_rounded,
-                title: 'Belum Ada Ujian Selesai',
-                subtitle: 'Riwayat ujian yang Anda selesaikan akan tercatat di tab ini.',
-              )
-            else
-              ..._examHistory.map((history) => _buildHistoryCard(history)),
-          ] else ...[
-            if (filtered.isEmpty)
-              _buildEmptyStateCard(
-                icon: Icons.search_off_rounded,
-                title: 'Tidak Ada Ujian Ditemukan',
-                subtitle: 'Coba ubah kata kunci pencarian atau ganti filter kategori.',
-              )
-            else
-              ...filtered.map((exam) => _buildExamCard(exam)),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, String key, int count) {
-    final isSelected = _selectedFilter == key;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedFilter = key;
-        });
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0F172A) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF475569),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : const Color(0xFF64748B),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // -------------------------------------------------------------
-  // TAB 3: RIWAYAT & NILAI (1-TO-1 MATCH WITH WEB)
-  // -------------------------------------------------------------
-  Widget _buildHistoryTab() {
-    return RefreshIndicator(
-      onRefresh: _fetchDashboardData,
-      child: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.analytics_rounded, size: 22, color: Color(0xFF0F172A)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Riwayat Nilai & Hasil Ujian',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Total ${_examHistory.length} ujian telah Anda selesaikan',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          if (_examHistory.isEmpty)
-            _buildEmptyStateCard(
-              icon: Icons.history_edu_rounded,
-              title: 'Belum Ada Hasil Ujian',
-              subtitle: 'Nilai ujian pilihan ganda dan koreksi esai akan muncul di sini setelah Anda selesai mengerjakan ujian.',
-            )
-          else
-            ..._examHistory.map((history) => _buildHistoryCard(history)),
-        ],
-      ),
-    );
-  }
-
-  // -------------------------------------------------------------
-  // TAB 4: PROFIL & PENGATURAN SISWA
-  // -------------------------------------------------------------
-  Widget _buildProfileTab() {
-    final currentServer = LocalExamStorage.getBaseUrl();
-
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
-      children: [
-        // Profile Info Card
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            children: [
-              CircleAvatar(
-                radius: 36,
-                backgroundColor: const Color(0xFF0F172A),
-                child: Text(
-                  _user?.name.isNotEmpty == true ? _user!.name.substring(0, 1).toUpperCase() : 'S',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _user?.name ?? 'Nama Siswa',
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _user?.email ?? 'akun.siswa@cbt.sch.id',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 16),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildProfileStat('KELAS', _user?.studentClass ?? '-'),
-                  Container(height: 24, width: 1, color: const Color(0xFFE2E8F0)),
-                  _buildProfileStat('NISN', _user?.studentNumber ?? '-'),
-                  Container(height: 24, width: 1, color: const Color(0xFFE2E8F0)),
-                  _buildProfileStat('PERAN', 'Siswa'),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Server Connection Card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.dns_rounded, size: 18, color: Color(0xFF0F172A)),
-                  SizedBox(width: 8),
-                  Text('Koneksi Server CBT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Text(
-                  currentServer,
-                  style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: Color(0xFF334155)),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF0F172A),
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: _handleChangeServerIp,
-                  icon: const Icon(Icons.settings_ethernet_rounded, size: 16),
-                  label: const Text('Ubah Alamat IP Server', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // App Version & Update Check
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Versi Aplikasi CBT', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: const Text('v${AppConstants.appVersion}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: () {
-                    UpdateCheckerService.checkAndShowDialog(context, manualCheck: true);
-                  },
-                  icon: const Icon(Icons.system_update_rounded, size: 16),
-                  label: const Text('Periksa Pembaruan APK', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Logout Button
-        SizedBox(
-          width: double.infinity,
-          height: 46,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: _handleLogout,
-            icon: const Icon(Icons.logout_rounded, size: 17),
-            label: const Text('KELUAR DARI APLIKASI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileStat(String label, String value) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+        // Top Header: Active session banner & tabs
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Column(
+            children: [
+              // Active Session Quick Card (if session in progress)
+              if (_activeSession != null) ...[
+                _buildActiveSessionBanner(),
+                const SizedBox(height: 12),
+              ],
+
+              // Search bar
+              Container(
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Cari mata pelajaran atau ujian...',
+                    hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF64748B)),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 16),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  onChanged: (val) {
+                    setState(() => _searchQuery = val);
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Two Core Tabs: List Ujian & Riwayat Nilai
+              TabBar(
+                controller: _tabController,
+                indicatorColor: const Color(0xFFEA580C),
+                indicatorWeight: 2.5,
+                labelColor: const Color(0xFF0F172A),
+                unselectedLabelColor: const Color(0xFF64748B),
+                labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                tabs: [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.format_list_bulleted_rounded, size: 16),
+                        const SizedBox(width: 6),
+                        Text('Daftar Ujian (${allActiveExams.length})'),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.task_alt_rounded, size: 16),
+                        const SizedBox(width: 6),
+                        Text('Riwayat & Nilai (${_examHistory.length})'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+        // Tab Views
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              // TAB 1: LIST UJIAN (CORE FLOW)
+              RefreshIndicator(
+                onRefresh: _fetchDashboardData,
+                child: filteredExams.isEmpty
+                    ? _buildEmptyStateCard(
+                        icon: Icons.event_note_rounded,
+                        title: 'Tidak Ada Ujian Tersedia',
+                        subtitle: 'Semua jadwal ujian untuk kelas Anda akan muncul di sini saat dibuka pengawas.',
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16.0),
+                        itemCount: filteredExams.length,
+                        itemBuilder: (ctx, idx) => _buildExamCard(filteredExams[idx]),
+                      ),
+              ),
+
+              // TAB 2: RIWAYAT NILAI
+              RefreshIndicator(
+                onRefresh: _fetchDashboardData,
+                child: filteredHistory.isEmpty
+                    ? _buildEmptyStateCard(
+                        icon: Icons.history_edu_rounded,
+                        title: 'Belum Ada Hasil Ujian',
+                        subtitle: 'Ujian yang telah Anda kumpulkan akan tercatat di sini beserta rincian nilainya.',
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16.0),
+                        itemCount: filteredHistory.length,
+                        itemBuilder: (ctx, idx) => _buildHistoryCard(filteredHistory[idx]),
+                      ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  // -------------------------------------------------------------
-  // REUSABLE CARDS: EXAM & HISTORY
-  // -------------------------------------------------------------
+  Widget _buildActiveSessionBanner() {
+    final active = _activeSession!;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEA580C), width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEA580C),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.lock_clock_rounded, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'SESI UJIAN BERJALAN',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFFFB923C), letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  active.examTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEA580C),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              final dummyExam = ExamModel(
+                id: active.examId,
+                title: active.examTitle,
+                durationMinutes: active.durationMinutes,
+                questionCount: 0,
+                status: 'in_progress',
+                sessionToken: active.token,
+              );
+              _navigateToExamTaking(dummyExam, active.token);
+            },
+            child: const Text('LANJUTKAN', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildExamCard(ExamModel exam) {
     final bool isSessionActive = exam.sessionStatus == 'in_progress' || (_activeSession?.examId == exam.id);
 
@@ -1158,6 +650,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Top Row: Subject & Status
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1213,7 +706,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Title
+          // Exam Title
           Text(
             exam.title,
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A), height: 1.3),
@@ -1237,12 +730,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               if (exam.questionCount > 0)
                 _buildSmallChip(Icons.format_list_numbered_rounded, '${exam.questionCount} Soal'),
               if (exam.requiresToken)
-                _buildSmallChip(Icons.key_rounded, 'Perlu Token', isHighlight: true),
+                _buildSmallChip(Icons.vpn_key_rounded, 'Perlu Token', isHighlight: true),
             ],
           ),
           const SizedBox(height: 14),
 
-          // Action Button
+          // Start Exam Button (Core Action)
           SizedBox(
             width: double.infinity,
             height: 42,
@@ -1442,15 +935,11 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     required String title,
     required String subtitle,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Center(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(14),

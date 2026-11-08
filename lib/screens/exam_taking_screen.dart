@@ -69,6 +69,10 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       _handleViolation('LEAVE_APP');
+    } else if (state == AppLifecycleState.resumed) {
+      // Re-assert lock task screen pinning & security
+      CbtSecurity.startKioskLock();
+      CbtSecurity.enableAntiScreenshot();
     }
   }
 
@@ -500,10 +504,24 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
+          ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Tombol kembali dinonaktifkan demi integritas ujian.'),
-              duration: Duration(seconds: 2),
+              backgroundColor: Color(0xFF0F172A),
+              behavior: SnackBarBehavior.floating,
+              content: Row(
+                children: [
+                  Icon(Icons.lock_rounded, color: Color(0xFFEA580C), size: 18),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Ujian Terkunci: Layar disematkan. Anda tidak dapat keluar kecuali tahan tombol Home + Back bersamaan.',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              duration: Duration(seconds: 3),
             ),
           );
         }
