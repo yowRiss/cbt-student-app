@@ -44,9 +44,10 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // 1. Activate Anti-Cheat Lock & Anti-Screenshot
+    // 1. Activate Anti-Cheat Lock, Keep Screen Awake & Anti-Screenshot
     CbtSecurity.enableAntiScreenshot();
     CbtSecurity.startKioskLock();
+    CbtSecurity.keepScreenOn(true);
 
     // 2. Load questions
     _loadExamQuestions();
@@ -59,20 +60,34 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
     _syncTimer?.cancel();
     _essayController.dispose();
 
-    // Release security on exit
+    // Release security and screen awake on exit
+    CbtSecurity.keepScreenOn(false);
     CbtSecurity.stopKioskLock();
     CbtSecurity.disableAntiScreenshot();
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.paused) {
+      // Tunggu jeda singkat agar status display/power hardware terdaftar di sistem
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+
+      final isInteractive = await CbtSecurity.isScreenInteractive();
+      if (!isInteractive) {
+        // Layar hp mati otomatis atau tombol power ditekan (bukan keluar aplikasi untuk curang)
+        debugPrint('[CBT Security] Layar mati / terkunci - tidak dihitung sebagai pelanggaran.');
+        return;
+      }
+
+      // Siswa sengaja menekan Home / membuka aplikasi lain saat layar masih menyala
       _handleViolation('LEAVE_APP');
     } else if (state == AppLifecycleState.resumed) {
       // Re-assert lock task screen pinning & security
       CbtSecurity.startKioskLock();
       CbtSecurity.enableAntiScreenshot();
+      CbtSecurity.keepScreenOn(true);
     }
   }
 

@@ -7,7 +7,7 @@ class CbtSecurity {
   static Future<void> enableAntiScreenshot() async {
     try {
       await _channel.invokeMethod('enableSecureScreen');
-    } catch (e) {
+    } catch (_) {
       // Ignored on unsupported devices
     }
   }
@@ -16,8 +16,27 @@ class CbtSecurity {
   static Future<void> disableAntiScreenshot() async {
     try {
       await _channel.invokeMethod('disableSecureScreen');
-    } catch (e) {
+    } catch (_) {
       // Ignored
+    }
+  }
+
+  /// Menjaga layar HP tetap menyala selama ujian agar tidak mati otomatis saat siswa membaca soal
+  static Future<void> keepScreenOn(bool enable) async {
+    try {
+      await _channel.invokeMethod('keepScreenOn', {'enable': enable});
+    } catch (_) {
+      // Ignored
+    }
+  }
+
+  /// Memeriksa apakah layar aktif dan interaktif (bukan layar mati otomatis/terkunci)
+  static Future<bool> isScreenInteractive() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('isScreenInteractive');
+      return res ?? true;
+    } catch (_) {
+      return true;
     }
   }
 

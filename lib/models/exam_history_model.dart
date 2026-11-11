@@ -1,6 +1,7 @@
 class ExamHistoryModel {
   final dynamic participantId;
   final dynamic examId;
+  final String? sessionToken;
   final String examTitle;
   final String? examDescription;
   final String? teacherName;
@@ -21,6 +22,7 @@ class ExamHistoryModel {
   ExamHistoryModel({
     required this.participantId,
     required this.examId,
+    this.sessionToken,
     required this.examTitle,
     this.examDescription,
     this.teacherName,
@@ -68,6 +70,7 @@ class ExamHistoryModel {
     return ExamHistoryModel(
       participantId: json['participant_id'] ?? json['id'],
       examId: json['exam_id'] ?? examObj?['id'],
+      sessionToken: json['session_token']?.toString() ?? json['token']?.toString(),
       examTitle: (examObj?['title'] ?? json['exam_title'] ?? 'Ujian Selesai').toString(),
       examDescription: examObj?['description']?.toString(),
       teacherName: examObj?['teacher_name']?.toString() ?? 'Guru Pengampu',

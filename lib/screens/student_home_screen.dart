@@ -892,6 +892,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
                   MaterialPageRoute(
                     builder: (_) => ExamResultDetailScreen(
                       examId: history.examId,
+                      sessionToken: history.sessionToken,
                       initialExamTitle: history.examTitle,
                     ),
                   ),
