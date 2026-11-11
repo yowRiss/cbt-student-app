@@ -108,15 +108,17 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
       String sessionToken = exam.sessionToken ?? '';
 
       if (sessionToken.isEmpty) {
+        String? token;
         // Masuk ujian pakai token jika diperlukan
         if (exam.requiresToken) {
-          final token = await showDialog<String>(
+          final tokenInput = await showDialog<String>(
             context: context,
             barrierDismissible: false,
             builder: (_) => ExamTokenDialog(examTitle: exam.title),
           );
 
-          if (token == null) return;
+          if (tokenInput == null || tokenInput.trim().isEmpty) return;
+          token = tokenInput.trim();
 
           _showLoadingOverlay('Memverifikasi token ujian...');
           await ApiClient.enterExam(exam.id, token);
@@ -124,7 +126,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
         }
 
         _showLoadingOverlay('Menyiapkan lembar soal...');
-        final startRes = await ApiClient.startExam(exam.id);
+        final startRes = await ApiClient.startExam(exam.id, token: token);
         _hideLoadingOverlay();
 
         sessionToken = (startRes['token'] ?? '').toString();

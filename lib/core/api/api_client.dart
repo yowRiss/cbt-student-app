@@ -170,17 +170,29 @@ class ApiClient {
   // Student: Enter Exam with Token
   static Future<Map<String, dynamic>> enterExam(dynamic examId, String token) async {
     try {
+      final trimmedToken = token.trim();
       final response = await _client.post(
         _buildUri('student/exams/$examId/enter'),
         headers: _buildHeaders(),
-        body: jsonEncode({'token': token}),
+        body: jsonEncode({
+          'token': trimmedToken,
+          'exam_access_token': trimmedToken,
+        }),
       ).timeout(AppConstants.timeout);
 
       final data = jsonDecode(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return (data['data'] ?? data) as Map<String, dynamic>;
       } else {
-        throw ApiException(data['message'] ?? 'Token ujian salah atau tidak valid.', response.statusCode);
+        String errorMsg = data['message'] ?? 'Token ujian salah atau tidak valid.';
+        if (data['errors'] != null && data['errors'] is Map) {
+          final errMap = data['errors'] as Map;
+          final firstKey = errMap.keys.firstOrNull;
+          if (firstKey != null && errMap[firstKey] is List && (errMap[firstKey] as List).isNotEmpty) {
+            errorMsg = errMap[firstKey][0].toString();
+          }
+        }
+        throw ApiException(errorMsg, response.statusCode);
       }
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -189,18 +201,36 @@ class ApiClient {
   }
 
   // Student: Start Exam Session
-  static Future<Map<String, dynamic>> startExam(dynamic examId) async {
+  static Future<Map<String, dynamic>> startExam(dynamic examId, {String? token}) async {
     try {
+      final body = <String, dynamic>{
+        'consent_confirmed_at': DateTime.now().toUtc().toIso8601String(),
+      };
+      if (token != null && token.trim().isNotEmpty) {
+        final trimmedToken = token.trim();
+        body['exam_access_token'] = trimmedToken;
+        body['token'] = trimmedToken;
+      }
+
       final response = await _client.post(
         _buildUri('student/exams/$examId/start'),
         headers: _buildHeaders(),
+        body: jsonEncode(body),
       ).timeout(AppConstants.timeout);
 
       final data = jsonDecode(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return (data['data'] ?? data) as Map<String, dynamic>;
       } else {
-        throw ApiException(data['message'] ?? 'Gagal memulai ujian.', response.statusCode);
+        String errorMsg = data['message'] ?? 'Gagal memulai ujian.';
+        if (data['errors'] != null && data['errors'] is Map) {
+          final errMap = data['errors'] as Map;
+          final firstKey = errMap.keys.firstOrNull;
+          if (firstKey != null && errMap[firstKey] is List && (errMap[firstKey] as List).isNotEmpty) {
+            errorMsg = errMap[firstKey][0].toString();
+          }
+        }
+        throw ApiException(errorMsg, response.statusCode);
       }
     } catch (e) {
       if (e is ApiException) rethrow;

@@ -60,21 +60,25 @@ class _ExamListScreenState extends State<ExamListScreen> {
   Future<void> _handleStartExam(ExamModel exam) async {
     try {
       if (exam.sessionToken == null || exam.sessionToken!.isEmpty) {
-        final token = await showDialog<String>(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => ExamTokenDialog(examTitle: exam.title),
-        );
+        String? token;
+        if (exam.requiresToken) {
+          final tokenInput = await showDialog<String>(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => ExamTokenDialog(examTitle: exam.title),
+          );
 
-        if (token == null) return;
+          if (tokenInput == null || tokenInput.trim().isEmpty) return;
+          token = tokenInput.trim();
 
-        _showLoadingOverlay();
-        await ApiClient.enterExam(exam.id, token);
+          _showLoadingOverlay();
+          await ApiClient.enterExam(exam.id, token);
+        }
 
-        final startRes = await ApiClient.startExam(exam.id);
+        final startRes = await ApiClient.startExam(exam.id, token: token);
         _hideLoadingOverlay();
 
-        final sessionToken = startRes['token'] as String;
+        final sessionToken = (startRes['token'] ?? '').toString();
         _navigateToExamTaking(exam, sessionToken);
       } else {
         _navigateToExamTaking(exam, exam.sessionToken!);
