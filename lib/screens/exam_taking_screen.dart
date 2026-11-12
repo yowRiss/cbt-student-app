@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/api/api_client.dart';
 import '../core/security/cbt_security.dart';
 import '../core/storage/local_exam_storage.dart';
@@ -35,6 +36,7 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
 
   // Violations
   int _violationCount = 0;
+  bool _isViewingExternalResource = false;
 
   // Essay controller
   final TextEditingController _essayController = TextEditingController();
@@ -70,6 +72,12 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.paused) {
+      // Jika siswa sedang sah membuka video YouTube atau dokumen lampiran soal, abaikan
+      if (_isViewingExternalResource) {
+        debugPrint('[CBT Security] Sedang membuka media/video soal - pelanggaran diabaikan.');
+        return;
+      }
+
       // Tunggu jeda singkat agar status display/power hardware terdaftar di sistem
       await Future.delayed(const Duration(milliseconds: 200));
       if (!mounted) return;
@@ -84,6 +92,7 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
       // Siswa sengaja menekan Home / membuka aplikasi lain saat layar masih menyala
       _handleViolation('LEAVE_APP');
     } else if (state == AppLifecycleState.resumed) {
+      _isViewingExternalResource = false;
       // Re-assert lock task screen pinning & security
       CbtSecurity.startKioskLock();
       CbtSecurity.enableAntiScreenshot();
@@ -687,14 +696,34 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(18.0),
-                    child: Text(
-                      currentQ.questionText,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.6,
-                        color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          currentQ.questionText,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 1.6,
+                            color: Color(0xFF0F172A),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        // 1. Lampiran Gambar Soal
+                        if (currentQ.hasMedia && currentQ.isImage && currentQ.mediaUrl != null) ...[
+                          const SizedBox(height: 16),
+                          _buildQuestionImage(currentQ.mediaUrl!),
+                        ],
+                        // 2. Video YouTube Lampiran Soal
+                        if (currentQ.hasYoutube && currentQ.youtubeUrl != null) ...[
+                          const SizedBox(height: 16),
+                          _buildYoutubeCard(currentQ.youtubeUrl!),
+                        ],
+                        // 3. Dokumen Lampiran Soal (PDF / DOCX)
+                        if (currentQ.hasMedia && !currentQ.isImage && currentQ.mediaUrl != null) ...[
+                          const SizedBox(height: 16),
+                          _buildDocumentAttachment(currentQ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
@@ -869,5 +898,271 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
         ),
       ),
     );
+  }
+
+  Widget _buildQuestionImage(String imageUrl) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: GestureDetector(
+          onTap: () => _showImageZoomDialog(imageUrl),
+          child: Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Image.network(
+                imageUrl,
+                width: double.infinity,
+                fit: BoxFit.contain,
+                loadingBuilder: (ctx, child, progress) {
+                  if (progress == null) return child;
+                  return Container(
+                    height: 180,
+                    alignment: Alignment.center,
+                    child: const CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F172A)),
+                  );
+                },
+                errorBuilder: (ctx, error, stackTrace) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    alignment: Alignment.center,
+                    color: const Color(0xFFFEF2F2),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.broken_image_rounded, color: Color(0xFFDC2626), size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Gambar lampiran gagal dimuat.',
+                          style: TextStyle(color: Color(0xFFDC2626), fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              Container(
+                margin: const EdgeInsets.all(8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xA6000000),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      'Ketuk perbesar',
+                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showImageZoomDialog(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xEB000000),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: InteractiveViewer(
+                  panEnabled: true,
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+              onPressed: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildYoutubeCard(String youtubeUrl) {
+    final thumbUrl = ApiClient.getYoutubeThumbnail(youtubeUrl);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                Icon(Icons.smart_display_rounded, color: Color(0xFFDC2626), size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Video Lampiran Soal (YouTube)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF991B1B)),
+                ),
+              ],
+            ),
+          ),
+          if (thumbUrl != null)
+            GestureDetector(
+              onTap: () => _openExternalMedia(youtubeUrl),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                    child: Image.network(
+                      thumbUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(height: 120, color: const Color(0xFF0F172A)),
+                    ),
+                  ),
+                  Container(
+                    height: 52,
+                    width: 52,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFDC2626),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x59000000),
+                          blurRadius: 10,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 36),
+                  ),
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => _openExternalMedia(youtubeUrl),
+                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                label: const Text('Buka Video di YouTube'),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentAttachment(QuestionModel question) {
+    final mediaUrl = question.mediaUrl ?? '';
+    final mediaName = question.mediaName ?? 'Lampiran File Soal';
+    final mediaExt = question.mediaExt?.toUpperCase() ?? 'DOKUMEN';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.description_rounded, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  mediaName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+                ),
+                Text(
+                  'Format $mediaExt',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F172A),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => _openExternalMedia(mediaUrl),
+            icon: const Icon(Icons.open_in_new_rounded, size: 14),
+            label: const Text('Buka', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openExternalMedia(String url) async {
+    _isViewingExternalResource = true;
+    try {
+      final uri = Uri.parse(url);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFDC2626),
+            content: Text('Gagal membuka media: $e'),
+          ),
+        );
+      }
+    } finally {
+      // Delay agar saat kembali dari aplikasi eksternal, event lifecycle tidak salah deteksi
+      await Future.delayed(const Duration(seconds: 1));
+      _isViewingExternalResource = false;
+    }
   }
 }

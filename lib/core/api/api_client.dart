@@ -35,6 +35,44 @@ class ApiClient {
     return Uri.parse('$baseUrl/$cleanPath').replace(queryParameters: queryParams);
   }
 
+  /// Menyesuaikan URL gambar / file lampiran dari backend
+  static String? resolveMediaUrl(String? pathOrUrl) {
+    if (pathOrUrl == null || pathOrUrl.trim().isEmpty) return null;
+    final trimmed = pathOrUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    final baseUrl = LocalExamStorage.getBaseUrl();
+    try {
+      final baseUri = Uri.parse(baseUrl);
+      final origin = '${baseUri.scheme}://${baseUri.host}${baseUri.hasPort ? ':${baseUri.port}' : ''}';
+      if (trimmed.startsWith('/')) {
+        return '$origin$trimmed';
+      }
+      return '$origin/$trimmed';
+    } catch (_) {
+      return trimmed;
+    }
+  }
+
+  /// Mengekstrak video ID YouTube dari berbagai format tautan
+  static String? extractYoutubeVideoId(String? url) {
+    if (url == null || url.trim().isEmpty) return null;
+    final regExp = RegExp(
+      r'(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(url.trim());
+    return match?.group(1);
+  }
+
+  /// Mendapatkan URL thumbnail YouTube berkualitas tinggi
+  static String? getYoutubeThumbnail(String? url) {
+    final videoId = extractYoutubeVideoId(url);
+    if (videoId == null) return null;
+    return 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+  }
+
   // Auth: Login
   static Future<Map<String, dynamic>> login(String identifier, String password) async {
     try {
