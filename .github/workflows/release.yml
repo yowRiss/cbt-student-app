@@ -59,10 +59,10 @@ jobs:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+UseG1GC"
         run: |
           echo "🔨 Building Split per ABI APKs..."
-          flutter build apk --release --split-per-abi
+          flutter build apk --release --split-per-abi --android-skip-build-dependency-validation
 
           echo "🔨 Building Universal APK..."
-          flutter build apk --release
+          flutter build apk --release --android-skip-build-dependency-validation
 
       - name: 🏷️ Determine Release Tag & Prepare Assets
         id: prep
