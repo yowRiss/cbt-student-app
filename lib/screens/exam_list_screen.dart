@@ -47,6 +47,9 @@ class _ExamListScreenState extends State<ExamListScreen> {
         _exams = parsed;
       });
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return;
+      }
       setState(() {
         _errorMessage = e.toString();
       });

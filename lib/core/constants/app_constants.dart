@@ -1,6 +1,6 @@
 class AppConstants {
   // App Version
-  static const String appVersion = '1.4.7';
+  static const String appVersion = '1.4.8';
 
   // GitHub Auto-Update Configuration
   static const String githubOwner = 'yowRiss';

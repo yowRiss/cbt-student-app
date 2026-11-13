@@ -93,6 +93,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
       final rawHistory = (data['exam_history'] as List<dynamic>?) ?? [];
       _examHistory = rawHistory.map((e) => ExamHistoryModel.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        if (mounted) {
+          await ApiClient.handleUnauthenticated();
+        }
+        return;
+      }
       _errorMessage = e.toString();
     } finally {
       if (mounted) {
@@ -418,6 +424,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
                 onPressed: _fetchDashboardData,
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Coba Lagi'),
+              ),
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: _handleLogout,
+                icon: const Icon(Icons.logout_rounded, size: 16, color: Color(0xFF64748B)),
+                label: const Text('Keluar / Ganti Akun', style: TextStyle(color: Color(0xFF64748B))),
               ),
             ],
           ),

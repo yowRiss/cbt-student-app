@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'core/api/api_client.dart';
 import 'core/storage/local_exam_storage.dart';
 import 'screens/login_screen.dart';
 import 'screens/student_home_screen.dart';
@@ -23,15 +24,64 @@ void main() async {
   runApp(const CbtStudentApp());
 }
 
-class CbtStudentApp extends StatelessWidget {
+class CbtStudentApp extends StatefulWidget {
   const CbtStudentApp({super.key});
+
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  @override
+  State<CbtStudentApp> createState() => _CbtStudentAppState();
+}
+
+class _CbtStudentAppState extends State<CbtStudentApp> {
+  @override
+  void initState() {
+    super.initState();
+    ApiClient.onUnauthenticated = _handleUnauthenticated;
+  }
+
+  void _handleUnauthenticated() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final nav = CbtStudentApp.navigatorKey.currentState;
+      if (nav != null) {
+        nav.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+        CbtStudentApp.scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Sesi login Anda telah berakhir. Silakan masuk kembali.',
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bool hasToken = LocalExamStorage.getAuthToken() != null &&
-        LocalExamStorage.getAuthToken()!.isNotEmpty;
+    final token = LocalExamStorage.getAuthToken();
+    final bool hasToken = token != null && token.trim().isNotEmpty;
 
     return MaterialApp(
+      navigatorKey: CbtStudentApp.navigatorKey,
+      scaffoldMessengerKey: CbtStudentApp.scaffoldMessengerKey,
       title: 'CBT Ulangan SD',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

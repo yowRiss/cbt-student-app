@@ -17,6 +17,30 @@ class ApiException implements Exception {
 class ApiClient {
   static final http.Client _client = http.Client();
 
+  /// Callback global saat server merespon 401 Unauthenticated
+  static void Function()? onUnauthenticated;
+  static bool _isHandling401 = false;
+
+  /// Tangani 401: bersihkan sesi lokal dan panggil callback untuk kembali ke login page
+  static Future<void> handleUnauthenticated() async {
+    if (_isHandling401) return;
+    _isHandling401 = true;
+    try {
+      await LocalExamStorage.clearAuth();
+      onUnauthenticated?.call();
+    } finally {
+      Future.delayed(const Duration(seconds: 2), () {
+        _isHandling401 = false;
+      });
+    }
+  }
+
+  static void _checkResponseAuth(http.Response response, {bool isAuthEndpoint = false}) {
+    if (response.statusCode == 401 && !isAuthEndpoint) {
+      handleUnauthenticated();
+    }
+  }
+
   static Map<String, String> _buildHeaders() {
     final headers = {
       'Content-Type': 'application/json',
@@ -122,6 +146,8 @@ class ApiClient {
         headers: _buildHeaders(),
       ).timeout(AppConstants.timeout);
 
+      _checkResponseAuth(response);
+
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         return (data['data'] ?? data) as Map<String, dynamic>;
@@ -141,6 +167,8 @@ class ApiClient {
         _buildUri('student/exams/$examId/result'),
         headers: _buildHeaders(),
       ).timeout(AppConstants.timeout);
+
+      _checkResponseAuth(response);
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
@@ -162,6 +190,8 @@ class ApiClient {
         headers: _buildHeaders(),
       ).timeout(AppConstants.timeout);
 
+      _checkResponseAuth(response);
+
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
         return (data['data'] ?? data) as Map<String, dynamic>;
@@ -181,6 +211,8 @@ class ApiClient {
         _buildUri('student/exams'),
         headers: _buildHeaders(),
       ).timeout(AppConstants.timeout);
+
+      _checkResponseAuth(response);
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
@@ -217,6 +249,8 @@ class ApiClient {
           'exam_access_token': trimmedToken,
         }),
       ).timeout(AppConstants.timeout);
+
+      _checkResponseAuth(response);
 
       final data = jsonDecode(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -256,6 +290,8 @@ class ApiClient {
         body: jsonEncode(body),
       ).timeout(AppConstants.timeout);
 
+      _checkResponseAuth(response);
+
       final data = jsonDecode(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return (data['data'] ?? data) as Map<String, dynamic>;
@@ -283,6 +319,8 @@ class ApiClient {
         _buildUri('student/exam-sessions/$sessionToken'),
         headers: _buildHeaders(),
       ).timeout(AppConstants.timeout);
+
+      _checkResponseAuth(response);
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
@@ -314,6 +352,8 @@ class ApiClient {
         }),
       ).timeout(const Duration(seconds: 8));
 
+      _checkResponseAuth(response);
+
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (_) {
       // Local fallback handles offline scenario
@@ -337,6 +377,8 @@ class ApiClient {
         }),
       ).timeout(const Duration(seconds: 5));
 
+      _checkResponseAuth(response);
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
         return (data['data'] ?? data) as Map<String, dynamic>;
@@ -354,6 +396,8 @@ class ApiClient {
         _buildUri('student/exam-sessions/$sessionToken/submit'),
         headers: _buildHeaders(),
       ).timeout(AppConstants.timeout);
+
+      _checkResponseAuth(response);
 
       final data = jsonDecode(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -374,6 +418,8 @@ class ApiClient {
         _buildUri('student/exam-sessions/$sessionToken/time-remaining'),
         headers: _buildHeaders(),
       ).timeout(const Duration(seconds: 5));
+
+      _checkResponseAuth(response);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

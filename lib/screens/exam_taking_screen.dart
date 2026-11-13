@@ -160,6 +160,9 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
       _startTimer();
       _initQuestionAnswer();
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return;
+      }
       setState(() {
         _errorMessage = e.toString();
       });

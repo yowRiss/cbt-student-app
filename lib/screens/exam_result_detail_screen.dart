@@ -49,6 +49,9 @@ class _ExamResultDetailScreenState extends State<ExamResultDetailScreen> {
         _result = ExamResultDetailModel.fromJson(raw);
       });
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return;
+      }
       setState(() {
         _errorMessage = e.toString();
       });
