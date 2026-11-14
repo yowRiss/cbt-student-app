@@ -104,6 +104,7 @@ class ApiClient {
         _buildUri('auth/login'),
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
         body: jsonEncode({
+          'username': identifier,
           'email': identifier,
           'password': password,
         }),

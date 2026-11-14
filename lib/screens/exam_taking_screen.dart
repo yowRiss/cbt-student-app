@@ -38,8 +38,9 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
   int _violationCount = 0;
   bool _isViewingExternalResource = false;
 
-  // Essay controller
+  // Essay controller & debounce timer
   final TextEditingController _essayController = TextEditingController();
+  Timer? _essayDebounceTimer;
 
   @override
   void initState() {
@@ -60,6 +61,7 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
     WidgetsBinding.instance.removeObserver(this);
     _countdownTimer?.cancel();
     _syncTimer?.cancel();
+    _essayDebounceTimer?.cancel();
     _essayController.dispose();
 
     // Release security and screen awake on exit
@@ -218,8 +220,36 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
     );
   }
 
-  void _saveEssayAnswer(String text) {
+  void _onEssayChanged(String text) {
+    if (_questions.isEmpty) return;
     final currentQ = _questions[_currentIndex];
+    currentQ.essayAnswer = text;
+
+    // 1. Simpan instan ke penyimpanan lokal perangkat (offline-safe)
+    LocalExamStorage.saveAnswerLocally(
+      sessionToken: widget.sessionToken,
+      questionId: currentQ.id.toString(),
+      essayAnswer: text,
+    );
+
+    // 2. Debounce pengiriman ke backend (800ms) untuk mencegah flood request ke server di setiap karakter
+    _essayDebounceTimer?.cancel();
+    _essayDebounceTimer = Timer(const Duration(milliseconds: 800), () {
+      ApiClient.saveAnswer(
+        sessionToken: widget.sessionToken,
+        questionId: currentQ.id,
+        essayAnswer: text,
+      );
+    });
+  }
+
+  void _saveEssayAnswer([String? overrideText]) {
+    _essayDebounceTimer?.cancel();
+    if (_questions.isEmpty) return;
+    final currentQ = _questions[_currentIndex];
+    if (currentQ.type != 'essay') return;
+
+    final text = overrideText ?? _essayController.text;
     currentQ.essayAnswer = text;
 
     LocalExamStorage.saveAnswerLocally(
@@ -250,6 +280,7 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
 
   Future<void> _autoSubmitTimeUp() async {
     _countdownTimer?.cancel();
+    _saveEssayAnswer();
     _showLoadingModal('Waktu ujian telah habis. Mengumpulkan lembar jawaban otomatis...');
     try {
       await ApiClient.submitExam(widget.sessionToken);
@@ -745,9 +776,7 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
                       fillColor: Colors.white,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    onChanged: (val) {
-                      _saveEssayAnswer(val);
-                    },
+                    onChanged: _onEssayChanged,
                   ),
                 ] else ...[
                   ...currentQ.options.asMap().entries.map((entry) {
