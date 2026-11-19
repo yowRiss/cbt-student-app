@@ -54,15 +54,12 @@ jobs:
       - name: 📦 Install Flutter Dependencies
         run: flutter pub get
 
-      - name: 🛠️ Build Split Per ABI & Universal APKs
+      - name: 🛠️ Build Optimized Universal APK
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+UseG1GC"
         run: |
-          echo "🔨 Building Split per ABI APKs..."
-          flutter build apk --release --split-per-abi --android-skip-build-dependency-validation
-
-          echo "🔨 Building Universal APK..."
-          flutter build apk --release --android-skip-build-dependency-validation
+          echo "🔨 Building Optimized Universal APK with Obfuscation..."
+          flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols --android-skip-build-dependency-validation
 
       - name: 🏷️ Determine Release Tag & Prepare Assets
         id: prep
@@ -74,41 +71,30 @@ jobs:
           fi
           echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
 
-          # Rename split APKs for clean direct downloads
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk cbt-student-app-arm64-v8a.apk
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk cbt-student-app-armeabi-v7a.apk
-          cp build/app/outputs/flutter-apk/app-x86_64-release.apk cbt-student-app-x86_64.apk
-
           # Universal APK
           cp build/app/outputs/flutter-apk/app-release.apk cbt-student-app-universal.apk
 
-          ls -lh cbt-student-app-*.apk
+          ls -lh cbt-student-app-universal.apk
 
-      - name: 🚀 Publish GitHub Release with APKs
+      - name: 🚀 Publish GitHub Release with APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.prep.outputs.tag }}
-          name: CBT Student App ${{ steps.prep.outputs.tag }}
+          name: SDNTD3 Ujian ${{ steps.prep.outputs.tag }}
           body: |
-            ## Pembaruan Aplikasi CBT Siswa (${{ steps.prep.outputs.tag }})
+            ## Pembaruan Aplikasi SDNTD3 Ujian (${{ steps.prep.outputs.tag }})
             
-            ${{ github.event.inputs.notes || 'Pembaruan aplikasi CBT dengan optimasi ukuran file per arsitektur HP (Split per ABI).' }}
+            ${{ github.event.inputs.notes || 'Pembaruan aplikasi CBT dengan ukuran file Universal yang telah dioptimasi dan diringankan.' }}
             
-            ### Pilihan File APK Sesuai Tipe HP:
-            - **`cbt-student-app-arm64-v8a.apk`** (Sangat Disarankan, ~9 MB): Untuk HP Android modern (keluaran 2017 ke atas: Samsung, Xiaomi, Oppo, Vivo, Realme, Infinix, dll).
-            - **`cbt-student-app-armeabi-v7a.apk`** (~8 MB): Untuk HP Android lama (32-bit).
-            - **`cbt-student-app-universal.apk`** (~25 MB): Paket lengkap berjalan di semua tipe HP Android tanpa kecuali.
-            - **`cbt-student-app-x86_64.apk`** (~9 MB): Khusus Emulator PC (BlueStacks, LDPlayer, Waydroid) atau Chromebook Intel.
+            ### File Unduhan:
+            - **`cbt-student-app-universal.apk`**: Paket Universal resmi yang telah dioptimasi untuk semua HP Android siswa (32-bit & 64-bit).
 
             ### Petunjuk Pemasangan:
-            1. Unduh APK sesuai tipe HP Anda (atau gunakan fitur deteksi otomatis di website).
+            1. Unduh `cbt-student-app-universal.apk`.
             2. **PENTING (Jika Update Muncul "App Not Installed"):** Silakan uninstall aplikasi CBT versi lama terlebih dahulu dari HP sebelum memasang APK baru.
             3. Izinkan pemasangan aplikasi dari sumber tidak dikenal jika diminta.
-            4. Buka aplikasi CBT dan mulai ujian.
+            4. Buka aplikasi dan mulai ujian.
           files: |
-            cbt-student-app-arm64-v8a.apk
-            cbt-student-app-armeabi-v7a.apk
-            cbt-student-app-x86_64.apk
             cbt-student-app-universal.apk
           generate_release_notes: true
           draft: false
