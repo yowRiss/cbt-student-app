@@ -202,7 +202,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'CBT ULANGAN SD',
+                  'SDNTD3 UJIAN',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w900,

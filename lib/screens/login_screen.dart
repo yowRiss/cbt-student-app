@@ -86,14 +86,14 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Aplikasi secara default menggunakan Server Demo Online Cloudflare:',
+              'Aplikasi secara default menggunakan Server SDNTD3:',
               style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: serverController,
               decoration: const InputDecoration(
-                hintText: 'https://demo-cbt.nerct.dev/api/v1',
+                hintText: 'https://sdntd3.nerct.dpdns.org/api/v1',
                 labelText: 'URL Server CBT',
                 isDense: true,
               ),
@@ -110,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 ActionChip(
                   avatar: const Icon(Icons.cloud_done_rounded, size: 14, color: Color(0xFF2563EB)),
-                  label: const Text('Demo Online', style: TextStyle(fontSize: 11)),
+                  label: const Text('Server Utama (sdntd3)', style: TextStyle(fontSize: 11)),
                   onPressed: () {
                     serverController.text = AppConstants.defaultBaseUrl;
                   },
@@ -131,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () {
               serverController.text = AppConstants.defaultBaseUrl;
             },
-            child: const Text('Reset Demo'),
+            child: const Text('Reset Default'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -176,19 +176,38 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 // Architectural Emblem
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF334155), width: 1.5),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x0D000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.school_rounded, size: 40, color: Colors.white),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        padding: const EdgeInsets.all(16),
+                        color: const Color(0xFF0F172A),
+                        child: const Icon(Icons.school_rounded, size: 40, color: Colors.white),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 18),
 
                 // Title & Subtitle
                 const Text(
-                  'CBT ULANGAN SD',
+                  'SDNTD3 UJIAN',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,

@@ -82,7 +82,7 @@ class _CbtStudentAppState extends State<CbtStudentApp> {
     return MaterialApp(
       navigatorKey: CbtStudentApp.navigatorKey,
       scaffoldMessengerKey: CbtStudentApp.scaffoldMessengerKey,
-      title: 'CBT Ulangan SD',
+      title: 'sdntd3 ujian',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

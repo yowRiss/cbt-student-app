@@ -28,6 +28,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
 
   bool _isLoading = true;
   String? _errorMessage;
+  bool _isLoadingOverlayShowing = false;
 
   // Search filter
   String _searchQuery = '';
@@ -169,6 +170,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
   }
 
   void _showLoadingOverlay(String message) {
+    _isLoadingOverlayShowing = true;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -189,11 +191,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
           ),
         ),
       ),
-    );
+    ).then((_) {
+      _isLoadingOverlayShowing = false;
+    });
   }
 
   void _hideLoadingOverlay() {
-    if (Navigator.canPop(context)) {
+    if (_isLoadingOverlayShowing && mounted && Navigator.canPop(context)) {
+      _isLoadingOverlayShowing = false;
       Navigator.pop(context);
     }
   }
@@ -299,20 +304,29 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
         ),
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/app_logo.png',
+                width: 30,
+                height: 30,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 18),
+                ),
               ),
-              child: const Icon(Icons.school_rounded, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'CBT ULANGAN SD',
+                  'SDNTD3 UJIAN',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w900,

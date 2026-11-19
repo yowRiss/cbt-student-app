@@ -31,6 +31,7 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
 
   // Timer state
   int _remainingSeconds = 0;
+  DateTime? _sessionExpiresAt;
   Timer? _countdownTimer;
   Timer? _syncTimer;
 
@@ -92,13 +93,24 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
       }
 
       // Siswa sengaja menekan Home / membuka aplikasi lain saat layar masih menyala
-      _handleViolation('LEAVE_APP');
+      _handleViolation('FOCUS_LOST');
     } else if (state == AppLifecycleState.resumed) {
       _isViewingExternalResource = false;
       // Re-assert lock task screen pinning & security
       CbtSecurity.startKioskLock();
       CbtSecurity.enableAntiScreenshot();
       CbtSecurity.keepScreenOn(true);
+
+      // Sinkronisasi ulang sisa waktu jika HP sempat tertidur / doze mode
+      if (_sessionExpiresAt != null) {
+        final diff = _sessionExpiresAt!.difference(DateTime.now()).inSeconds;
+        setState(() {
+          _remainingSeconds = diff > 0 ? diff : 0;
+        });
+        if (_remainingSeconds <= 0) {
+          _autoSubmitTimeUp();
+        }
+      }
     }
   }
 
@@ -141,6 +153,15 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
       final rawQuestions = res['questions'] as List<dynamic>? ?? [];
 
       _remainingSeconds = sessionData?['remaining_seconds'] ?? (widget.exam.durationMinutes * 60);
+      if (sessionData?['expires_at'] != null) {
+        try {
+          _sessionExpiresAt = DateTime.parse(sessionData!['expires_at'].toString()).toLocal();
+        } catch (_) {
+          _sessionExpiresAt = DateTime.now().add(Duration(seconds: _remainingSeconds));
+        }
+      } else {
+        _sessionExpiresAt = DateTime.now().add(Duration(seconds: _remainingSeconds));
+      }
 
       final parsed = rawQuestions.map((q) => QuestionModel.fromJson(q as Map<String, dynamic>)).toList();
 
@@ -187,6 +208,18 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
       } else {
         timer.cancel();
         _autoSubmitTimeUp();
+      }
+    });
+
+    // Jalankan sync berkala ke server tiap 60 detik untuk mencegah timer drift
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(const Duration(seconds: 60), (_) async {
+      final serverRemaining = await ApiClient.getTimeRemaining(widget.sessionToken);
+      if (serverRemaining != null && mounted) {
+        setState(() {
+          _remainingSeconds = serverRemaining;
+          _sessionExpiresAt = DateTime.now().add(Duration(seconds: serverRemaining));
+        });
       }
     });
   }
@@ -401,7 +434,44 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
         await LocalExamStorage.clearSessionAnswers(widget.sessionToken);
         _closeExamAndNavigateResult();
       } catch (e) {
-        _closeExamAndNavigateResult();
+        if (!mounted) return;
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context); // Tutup loading modal
+        }
+        showDialog(
+          context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 22),
+                  SizedBox(width: 8),
+                  Text('Gagal Mengumpulkan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: Text(
+                'Terjadi kendala saat mengirim jawaban ke server: $e\n\nPastikan koneksi internet aktif lalu coba kirim kembali.',
+                style: const TextStyle(fontSize: 13),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _confirmSubmit();
+                  },
+                  child: const Text('Coba Kirim Ulang'),
+                ),
+              ],
+            ),
+          );
       }
     }
   }

@@ -63,13 +63,22 @@ class ApiClient {
   static String? resolveMediaUrl(String? pathOrUrl) {
     if (pathOrUrl == null || pathOrUrl.trim().isEmpty) return null;
     final trimmed = pathOrUrl.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
     final baseUrl = LocalExamStorage.getBaseUrl();
     try {
       final baseUri = Uri.parse(baseUrl);
       final origin = '${baseUri.scheme}://${baseUri.host}${baseUri.hasPort ? ':${baseUri.port}' : ''}';
+
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        final parsed = Uri.parse(trimmed);
+        // Jika backend mengirim URL dengan host localhost / 127.0.0.1
+        // Gantikan dengan origin server CBT yang sedang aktif
+        if (parsed.host == 'localhost' || parsed.host == '127.0.0.1') {
+          final pathWithQuery = '${parsed.path}${parsed.hasQuery ? '?${parsed.query}' : ''}';
+          return '$origin$pathWithQuery';
+        }
+        return trimmed;
+      }
+
       if (trimmed.startsWith('/')) {
         return '$origin$trimmed';
       }

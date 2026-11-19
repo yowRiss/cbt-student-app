@@ -1,6 +1,6 @@
 class AppConstants {
   // App Version
-  static const String appVersion = '1.4.9';
+  static const String appVersion = '1.5.0';
 
   // GitHub Auto-Update Configuration
   static const String githubOwner = 'yowRiss';
@@ -8,8 +8,8 @@ class AppConstants {
   static const String githubLatestReleaseApi =
       'https://api.github.com/repos/$githubOwner/$githubRepo/releases/latest';
 
-  // Default server URL (Otomatis default ke API Demo Cloudflare)
-  static const String defaultBaseUrl = 'https://demo-cbt.nerct.dev/api/v1';
+  // Default server URL
+  static const String defaultBaseUrl = 'https://sdntd3.nerct.dpdns.org/api/v1';
   static const String localFallbackBaseUrl = 'http://192.168.18.28/api/v1';
 
   // Shared Preferences keys
