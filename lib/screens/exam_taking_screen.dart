@@ -39,6 +39,8 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
   int _violationCount = 0;
   bool _isViewingExternalResource = false;
   DateTime? _lastViolationTime;
+  bool _isForcedSubmitted = false;
+  bool _isSubmitting = false;
 
   // Essay controller & debounce timer
   final TextEditingController _essayController = TextEditingController();
@@ -87,18 +89,41 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden) {
-      // Jika siswa sedang sah membuka video YouTube atau dokumen lampiran soal, abaikan
-      if (_isViewingExternalResource) {
-        debugPrint('[CBT Security] Sedang membuka media/video soal - pelanggaran diabaikan.');
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      if (_isViewingExternalResource || _isForcedSubmitted || _isSubmitting) {
         return;
       }
 
-      // Periksa apakah ini pelanggaran (termasuk saat Google Assistant atau overlay dipanggil)
+      // Beri jeda singkat agar status power/layar hardware terdaftar di sistem
+      await Future.delayed(const Duration(milliseconds: 250));
+      if (!mounted) return;
+
+      if (_isViewingExternalResource || _isForcedSubmitted || _isSubmitting) {
+        return;
+      }
+
+      final isInteractive = await CbtSecurity.isScreenInteractive();
+      if (!isInteractive) {
+        // Layar hp mati otomatis atau tombol power ditekan (bukan paksa keluar aplikasi)
+        debugPrint('[CBT Security] Layar mati / terkunci - tidak dipaksa kirim.');
+        return;
+      }
+
+      // Siswa keluar dari aplikasi saat layar aktif (paksa keluar app / cabut kunci / minimize)
+      // LANGSUNG PAKSA KIRIM UJIAN!
+      _forceSubmitDueToExit();
+    } else if (state == AppLifecycleState.inactive) {
+      if (_isViewingExternalResource || _isForcedSubmitted || _isSubmitting) {
+        return;
+      }
+      // Kehilangan fokus sementara (misal overlay / status bar)
       _triggerViolationCheck('FOCUS_LOST');
     } else if (state == AppLifecycleState.resumed) {
+      if (_isForcedSubmitted) {
+        _showTerminatedDialog('Ujian telah dikumpulkan otomatis oleh sistem karena Anda keluar dari aplikasi saat ujian sedang berlangsung.');
+        return;
+      }
+
       _isViewingExternalResource = false;
       CbtSecurity.setExternalResourceAllowed(false);
       // Re-assert lock task screen pinning & security
@@ -118,6 +143,46 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
         }
       }
     }
+  }
+
+  Future<void> _forceSubmitDueToExit() async {
+    if (_isForcedSubmitted || _isSubmitting) return;
+    _isForcedSubmitted = true;
+    _isSubmitting = true;
+
+    debugPrint('[CBT Security] Siswa paksa keluar app! Mengumpulkan ujian seketika (paksa kirim)...');
+
+    // 1. Simpan jawaban essay terakhir jika ada
+    _saveEssayAnswer();
+
+    // 2. Batalkan semua timer
+    _countdownTimer?.cancel();
+    _syncTimer?.cancel();
+    _essayDebounceTimer?.cancel();
+
+    // 3. Matikan mode keamanan & kiosk
+    CbtSecurity.setSecurityMode(false);
+    CbtSecurity.setExternalResourceAllowed(false);
+    CbtSecurity.stopKioskLock();
+    CbtSecurity.keepScreenOn(false);
+    CbtSecurity.disableAntiScreenshot();
+
+    // 4. Kirim sinyal auto-submit ke server dengan alasan forced_exit_app
+    try {
+      await ApiClient.autoSubmitExam(
+        widget.sessionToken,
+        reason: 'forced_exit_app',
+      );
+    } catch (_) {
+      try {
+        await ApiClient.submitExam(widget.sessionToken);
+      } catch (_) {}
+    }
+
+    // 5. Bersihkan penyimpanan lokal jawaban sesi ini
+    try {
+      await LocalExamStorage.clearSessionAnswers(widget.sessionToken);
+    } catch (_) {}
   }
 
   Future<void> _triggerViolationCheck(String type) async {
@@ -368,15 +433,19 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Ujian Dihentikan', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.bold)),
+        title: const Text('Ujian Dihentikan & Dikirim', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.bold)),
         content: Text(reason),
         actions: [
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F172A),
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.pop(context);
+              _closeExamAndNavigateResult();
             },
-            child: const Text('Tutup'),
+            child: const Text('Lihat Hasil'),
           ),
         ],
       ),

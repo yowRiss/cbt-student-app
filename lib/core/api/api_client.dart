@@ -399,6 +399,34 @@ class ApiClient {
     }
   }
 
+  // Student: Auto Submit Exam
+  static Future<Map<String, dynamic>?> autoSubmitExam(
+    String sessionToken, {
+    String reason = 'forced_exit_app',
+  }) async {
+    try {
+      final response = await _client.post(
+        _buildUri('student/exam-sessions/$sessionToken/auto-submit'),
+        headers: _buildHeaders(),
+        body: jsonEncode({'reason': reason}),
+      ).timeout(const Duration(seconds: 8));
+
+      _checkResponseAuth(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        return (data['data'] ?? data) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (_) {
+      try {
+        return await submitExam(sessionToken);
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
   // Student: Submit Exam
   static Future<Map<String, dynamic>> submitExam(String sessionToken) async {
     try {
