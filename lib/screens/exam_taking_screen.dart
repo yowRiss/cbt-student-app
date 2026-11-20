@@ -38,6 +38,7 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
   // Violations
   int _violationCount = 0;
   bool _isViewingExternalResource = false;
+  DateTime? _lastViolationTime;
 
   // Essay controller & debounce timer
   final TextEditingController _essayController = TextEditingController();
@@ -50,8 +51,17 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
 
     // 1. Activate Anti-Cheat Lock, Keep Screen Awake & Anti-Screenshot
     CbtSecurity.enableAntiScreenshot();
+    CbtSecurity.setSecurityMode(true);
+    CbtSecurity.setExternalResourceAllowed(false);
     CbtSecurity.startKioskLock();
     CbtSecurity.keepScreenOn(true);
+
+    // Inisialisasi listener deteksi Google Assistant / kehilangan fokus dari native Android
+    CbtSecurity.initializeSecurityListener((event) {
+      if (!_isViewingExternalResource) {
+        _triggerViolationCheck(event);
+      }
+    });
 
     // 2. Load questions
     _loadExamQuestions();
@@ -60,12 +70,15 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    CbtSecurity.initializeSecurityListener(null);
     _countdownTimer?.cancel();
     _syncTimer?.cancel();
     _essayDebounceTimer?.cancel();
     _essayController.dispose();
 
     // Release security and screen awake on exit
+    CbtSecurity.setSecurityMode(false);
+    CbtSecurity.setExternalResourceAllowed(false);
     CbtSecurity.keepScreenOn(false);
     CbtSecurity.stopKioskLock();
     CbtSecurity.disableAntiScreenshot();
@@ -74,29 +87,22 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
       // Jika siswa sedang sah membuka video YouTube atau dokumen lampiran soal, abaikan
       if (_isViewingExternalResource) {
         debugPrint('[CBT Security] Sedang membuka media/video soal - pelanggaran diabaikan.');
         return;
       }
 
-      // Tunggu jeda singkat agar status display/power hardware terdaftar di sistem
-      await Future.delayed(const Duration(milliseconds: 200));
-      if (!mounted) return;
-
-      final isInteractive = await CbtSecurity.isScreenInteractive();
-      if (!isInteractive) {
-        // Layar hp mati otomatis atau tombol power ditekan (bukan keluar aplikasi untuk curang)
-        debugPrint('[CBT Security] Layar mati / terkunci - tidak dihitung sebagai pelanggaran.');
-        return;
-      }
-
-      // Siswa sengaja menekan Home / membuka aplikasi lain saat layar masih menyala
-      _handleViolation('FOCUS_LOST');
+      // Periksa apakah ini pelanggaran (termasuk saat Google Assistant atau overlay dipanggil)
+      _triggerViolationCheck('FOCUS_LOST');
     } else if (state == AppLifecycleState.resumed) {
       _isViewingExternalResource = false;
+      CbtSecurity.setExternalResourceAllowed(false);
       // Re-assert lock task screen pinning & security
+      CbtSecurity.setSecurityMode(true);
       CbtSecurity.startKioskLock();
       CbtSecurity.enableAntiScreenshot();
       CbtSecurity.keepScreenOn(true);
@@ -112,6 +118,31 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
         }
       }
     }
+  }
+
+  Future<void> _triggerViolationCheck(String type) async {
+    // Debounce untuk mencegah duplikasi event (misal inactive diikuti hidden/paused dalam waktu singkat)
+    final now = DateTime.now();
+    if (_lastViolationTime != null &&
+        now.difference(_lastViolationTime!) < const Duration(milliseconds: 2500)) {
+      return;
+    }
+
+    // Tunggu jeda singkat agar status display/power hardware terdaftar di sistem
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+
+    if (_isViewingExternalResource) return;
+
+    final isInteractive = await CbtSecurity.isScreenInteractive();
+    if (!isInteractive) {
+      // Layar hp mati otomatis atau tombol power ditekan (bukan keluar aplikasi untuk curang)
+      debugPrint('[CBT Security] Layar mati / terkunci - tidak dihitung sebagai pelanggaran.');
+      return;
+    }
+
+    _lastViolationTime = DateTime.now();
+    _handleViolation(type);
   }
 
   Future<void> _handleViolation(String type) async {
@@ -133,8 +164,8 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: const Color(0xFFDC2626),
-          content: Text('Peringatan Keamanan ($_violationCount): Dilarang keluar dari layar ujian!'),
-          duration: const Duration(seconds: 3),
+          content: Text('Peringatan Keamanan ($_violationCount): Dilarang keluar dari layar ujian atau membuka Google Assistant!'),
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -1249,10 +1280,13 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
 
   Future<void> _openExternalMedia(String url) async {
     _isViewingExternalResource = true;
+    await CbtSecurity.setExternalResourceAllowed(true);
     try {
       final uri = Uri.parse(url);
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
+      _isViewingExternalResource = false;
+      await CbtSecurity.setExternalResourceAllowed(false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1261,10 +1295,6 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
           ),
         );
       }
-    } finally {
-      // Delay agar saat kembali dari aplikasi eksternal, event lifecycle tidak salah deteksi
-      await Future.delayed(const Duration(seconds: 1));
-      _isViewingExternalResource = false;
     }
   }
 }

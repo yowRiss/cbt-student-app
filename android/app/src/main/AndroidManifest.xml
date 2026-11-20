@@ -43,6 +43,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Blocker activity for android.intent.action.ASSIST to neutralize long-press home assistant -->
+        <activity
+            android:name=".AssistBlockerActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

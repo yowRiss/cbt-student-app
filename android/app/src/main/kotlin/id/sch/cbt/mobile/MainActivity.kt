@@ -8,6 +8,8 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.view.KeyEvent
+import android.view.SearchEvent
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -16,6 +18,9 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "id.sch.cbt.mobile/security"
     private var isScreenOff: Boolean = false
+    private var isSecurityModeActive: Boolean = false
+    private var isExternalResourceAllowed: Boolean = false
+    private var securityChannel: MethodChannel? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -68,17 +73,96 @@ class MainActivity: FlutterActivity() {
         super.onDestroy()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus && isSecurityModeActive && !isExternalResourceAllowed) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+            val isInteractive = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+                powerManager?.isInteractive ?: true
+            } else {
+                @Suppress("DEPRECATION")
+                powerManager?.isScreenOn ?: true
+            }
+            if (!isScreenOff && isInteractive) {
+                // Focus was lost while screen is interactive (e.g., Google Assistant, Circle to Search, status bar pull, overlay)
+                securityChannel?.invokeMethod("onWindowFocusLost", null)
+
+                // Force bring our CBT activity back to front to dismiss assistant/overlay immediately
+                try {
+                    val intent = Intent(this, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (isSecurityModeActive && !isExternalResourceAllowed) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_ASSIST,
+                KeyEvent.KEYCODE_VOICE_ASSIST,
+                KeyEvent.KEYCODE_SEARCH -> {
+                    if (event.action == KeyEvent.ACTION_UP) {
+                        securityChannel?.invokeMethod("onAssistAttempted", null)
+                    }
+                    return true // Block assistant key event
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    override fun onSearchRequested(): Boolean {
+        if (isSecurityModeActive && !isExternalResourceAllowed) {
+            securityChannel?.invokeMethod("onAssistAttempted", null)
+            return false
+        }
+        return super.onSearchRequested()
+    }
+
+    override fun onSearchRequested(searchEvent: SearchEvent?): Boolean {
+        if (isSecurityModeActive && !isExternalResourceAllowed) {
+            securityChannel?.invokeMethod("onAssistAttempted", null)
+            return false
+        }
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            super.onSearchRequested(searchEvent)
+        } else {
+            false
+        }
+    }
+
+    override fun onProvideAssistData(data: Bundle?) {
+        super.onProvideAssistData(data)
+        if (isSecurityModeActive) {
+            data?.clear() // Clear any screen context from being sent to Google Assistant / Circle to Search
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        securityChannel = channel
+        channel.setMethodCallHandler { call, result ->
             when (call.method) {
+                "setSecurityMode" -> {
+                    isSecurityModeActive = call.argument<Boolean>("active") ?: false
+                    result.success(true)
+                }
+                "setExternalResourceAllowed" -> {
+                    isExternalResourceAllowed = call.argument<Boolean>("allowed") ?: false
+                    result.success(true)
+                }
                 "enableSecureScreen" -> {
-                    // Prevent screenshot and screen recording
+                    isSecurityModeActive = true
                     activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     result.success(true)
                 }
                 "disableSecureScreen" -> {
+                    isSecurityModeActive = false
                     activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     result.success(true)
                 }
@@ -106,7 +190,6 @@ class MainActivity: FlutterActivity() {
                     result.success(active)
                 }
                 "startLockTask" -> {
-                    // Pin screen / Kiosk mode (Android 5.0+)
                     try {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                             startLockTask()
@@ -128,6 +211,25 @@ class MainActivity: FlutterActivity() {
                         }
                     } catch (e: Exception) {
                         result.error("STOP_LOCK_ERROR", e.localizedMessage, null)
+                    }
+                }
+                "openAssistSettings" -> {
+                    try {
+                        val intent = Intent(android.provider.Settings.ACTION_VOICE_INPUT_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (_: Exception) {
+                        try {
+                            val intent = Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (_: Exception) {
+                            result.success(false)
+                        }
                     }
                 }
                 else -> {
