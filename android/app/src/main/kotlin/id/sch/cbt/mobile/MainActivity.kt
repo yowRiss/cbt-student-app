@@ -84,16 +84,9 @@ class MainActivity: FlutterActivity() {
                 powerManager?.isScreenOn ?: true
             }
             if (!isScreenOff && isInteractive) {
-                // Focus was lost while screen is interactive (e.g., Google Assistant, Circle to Search, status bar pull, overlay)
+                // Focus was lost while screen is interactive (e.g., Google Assistant, Circle to Search, status bar pull, overlay, or unpinning app)
+                // Notify Flutter to record violation, without forcibly trapping the user via startActivity loop
                 securityChannel?.invokeMethod("onWindowFocusLost", null)
-
-                // Force bring our CBT activity back to front to dismiss assistant/overlay immediately
-                try {
-                    val intent = Intent(this, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    }
-                    startActivity(intent)
-                } catch (_: Exception) {}
             }
         }
     }

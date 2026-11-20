@@ -356,6 +356,13 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
   }
 
   void _showTerminatedDialog(String reason) {
+    // Release locks immediately
+    CbtSecurity.setSecurityMode(false);
+    CbtSecurity.setExternalResourceAllowed(false);
+    CbtSecurity.stopKioskLock();
+    CbtSecurity.keepScreenOn(false);
+    CbtSecurity.disableAntiScreenshot();
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -510,6 +517,14 @@ class _ExamTakingScreenState extends State<ExamTakingScreen> with WidgetsBinding
   void _closeExamAndNavigateResult() {
     _countdownTimer?.cancel();
     _syncTimer?.cancel();
+    _essayDebounceTimer?.cancel();
+
+    // Release locks immediately before navigating to results
+    CbtSecurity.setSecurityMode(false);
+    CbtSecurity.setExternalResourceAllowed(false);
+    CbtSecurity.stopKioskLock();
+    CbtSecurity.keepScreenOn(false);
+    CbtSecurity.disableAntiScreenshot();
 
     if (Navigator.canPop(context)) {
       Navigator.pop(context); // Close loading modal
