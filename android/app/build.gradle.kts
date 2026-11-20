@@ -23,7 +23,7 @@ android {
         versionName = flutter.versionName
 
         ndk {
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
         }
     }
 
@@ -45,6 +45,10 @@ android {
             keyPassword = "cbtpassword123"
             storeFile = file("cbt-release.jks")
             storePassword = "cbtpassword123"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = false
         }
     }
 
