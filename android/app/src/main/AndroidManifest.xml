@@ -11,8 +11,7 @@
         android:normalScreens="true"
         android:largeScreens="true"
         android:xlargeScreens="true"
-        android:anyDensity="true"
-        android:resizeable="true" />
+        android:anyDensity="true" />
 
     <!-- Nyatakan fitur hardware sebagai opsional agar tablet tanpa telepon/getar/kamera tidak diblokir -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
@@ -21,8 +20,6 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.faketouch" android:required="false" />
-    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
-    <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
 
     <!-- Required for url_launcher on Android 11+ (API 30+) -->
     <queries>
@@ -40,6 +37,7 @@
         android:label="sdntd3 ujian"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:extractNativeLibs="true"
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:resizeableActivity="true">
