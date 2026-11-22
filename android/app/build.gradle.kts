@@ -37,10 +37,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = "cbtkey"
-            keyPassword = "cbtpassword123"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "sdntd3cbt"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "xTdBdMtxKjjF9n8V"
             storeFile = file("cbt-release.jks")
-            storePassword = "cbtpassword123"
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "xTdBdMtxKjjF9n8V"
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true

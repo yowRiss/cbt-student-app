@@ -54,9 +54,21 @@ jobs:
       - name: 📦 Install Flutter Dependencies
         run: flutter pub get
 
+      - name: 🔐 Setup Android Keystore from Secret
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "Menggunakan keystore dari GitHub Secrets..."
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/cbt-release.jks
+          else
+            echo "Menggunakan keystore lokal yang tersedia di runner..."
+          fi
+
       - name: 🛠️ Build Universal APK
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+UseG1GC"
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           echo "🔨 Building Universal APK (Semua Arsitektur arm64, armeabi-v7a, x86_64)..."
           flutter build apk --release --android-skip-build-dependency-validation
