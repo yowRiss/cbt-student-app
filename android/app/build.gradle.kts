@@ -37,14 +37,24 @@ android {
 
     signingConfigs {
         create("release") {
-            val rawAlias = System.getenv("KEY_ALIAS")?.trim()
-            val rawKeyPass = System.getenv("KEY_PASSWORD")?.trim()
-            val rawStorePass = System.getenv("KEYSTORE_PASSWORD")?.trim()
+            var rawAlias = System.getenv("KEY_ALIAS")?.trim()
+            var rawKeyPass = System.getenv("KEY_PASSWORD")?.trim()
+            var rawStorePass = System.getenv("KEYSTORE_PASSWORD")?.trim()
 
-            keyAlias = if (!rawAlias.isNullOrEmpty()) rawAlias else "sdntd3cbt"
-            keyPassword = if (!rawKeyPass.isNullOrEmpty()) rawKeyPass else "xTdBdMtxKjjF9n8V"
+            if (rawStorePass.isNullOrEmpty() || rawStorePass == "cbtpassword123") {
+                rawStorePass = "xTdBdMtxKjjF9n8V"
+            }
+            if (rawKeyPass.isNullOrEmpty() || rawKeyPass == "cbtpassword123") {
+                rawKeyPass = "xTdBdMtxKjjF9n8V"
+            }
+            if (rawAlias.isNullOrEmpty() || rawAlias == "cbtkey") {
+                rawAlias = "sdntd3cbt"
+            }
+
+            keyAlias = rawAlias
+            keyPassword = rawKeyPass
             storeFile = file("cbt-release.jks")
-            storePassword = if (!rawStorePass.isNullOrEmpty()) rawStorePass else "xTdBdMtxKjjF9n8V"
+            storePassword = rawStorePass
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
