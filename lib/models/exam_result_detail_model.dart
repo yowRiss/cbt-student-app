@@ -107,6 +107,10 @@ class ExamResultDetailModel {
     );
   }
 
-  bool get isPassed => passedBool == true;
-  bool get isPendingGrading => pendingManualGrading || !essayGraded || passFail.toLowerCase() == 'pending';
+  bool get isPassed => isPendingGrading ? false : (passedBool == true);
+  bool get isPendingGrading =>
+      pendingManualGrading ||
+      !essayGraded ||
+      passFail.toLowerCase() == 'pending' ||
+      (passedBool == null && (essayMax != null && essayMax! > 0 && essayScore == null));
 }

@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId = "id.sch.cbt.mobile"
-        // Support Android 5.0 (API 21) or newer
+        // Support Android 7.0 (API 24) or newer
         minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = flutter.versionCode

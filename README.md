@@ -2,8 +2,8 @@
 
 Aplikasi Computer-Based Test (CBT) berbasis Flutter yang dirancang khusus:
 1. **Super Ringan & Cepat**: Menggunakan paket minimalis, memory footprint sangat rendah, cocok untuk perangkat Android low-end / lama (RAM 1–2 GB).
-2. **Support Android Lama**: `minSdkVersion 21` (Mendukung Android 5.0 Lollipop ke atas).
-3. **1 File APK Universal**: Siswa dan guru tidak perlu bingung memilih arsitektur prosesor (semua arsitektur `armv7`, `arm64`, dan `x86_64` digabung dalam satu file APK).
+2. **Kompatibilitas Luas**: Mendukung Android 7.0 (Nougat, API 24) ke atas.
+3. **1 File APK Universal**: Siswa dan guru tidak perlu bingung memilih arsitektur prosesor (semua arsitektur `armv7`, `arm64`, dan `x86_64` digabung dalam satu file APK resmi tanpa risiko bentrok versionCode downgrade).
 4. **Anti-Cheat Terintegrasi**:
    - `FLAG_SECURE`: Anti screenshot & anti screen-recording.
    - Deteksi keluar aplikasi (`AppLifecycleState` `paused`/`inactive`) yang otomatis dilaporkan ke endpoint `/api/v1/student/exam-sessions/{token}/violation`.
