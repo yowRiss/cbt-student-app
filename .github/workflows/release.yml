@@ -54,18 +54,20 @@ jobs:
       - name: 📦 Install Flutter Dependencies
         run: flutter pub get
 
-      - name: 🔐 Setup Android Keystore from Secret
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      - name: 🔐 Setup Android Keystore
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Menggunakan keystore dari GitHub Secrets..."
-            echo "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > android/app/cbt-release.jks
+          if [ -f "android/app/cbt-release.jks.enc" ]; then
+            echo "Mendekripsi keystore rilis aman..."
+            PASS="${{ secrets.KEYSTORE_KEY }}"
+            if [ -z "$PASS" ]; then
+              PASS="SDNTD3_CBT_SECURE_KEY_2026"
+            fi
+            openssl enc -d -aes-256-cbc -pbkdf2 -in android/app/cbt-release.jks.enc -out android/app/cbt-release.jks -k "$PASS"
             ls -la android/app/cbt-release.jks
             echo "🔍 Memverifikasi integritas keystore..."
             keytool -list -keystore android/app/cbt-release.jks -storepass "xTdBdMtxKjjF9n8V"
           else
-            echo "❌ ERROR: Secret KEYSTORE_BASE64 kosong atau belum ditambahkan!"
+            echo "❌ ERROR: File keystore terenkripsi tidak ditemukan!"
             exit 1
           fi
 
