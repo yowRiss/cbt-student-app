@@ -94,6 +94,10 @@ class MainActivity: FlutterActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (isSecurityModeActive && !isExternalResourceAllowed) {
             when (event.keyCode) {
+                KeyEvent.KEYCODE_BACK -> {
+                    // Mencegah overlay sistem "App is pinned" muncul di atas lembar ujian saat tombol back ditekan
+                    return true
+                }
                 KeyEvent.KEYCODE_ASSIST,
                 KeyEvent.KEYCODE_VOICE_ASSIST,
                 KeyEvent.KEYCODE_SEARCH -> {

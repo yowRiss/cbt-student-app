@@ -128,7 +128,13 @@ class ApiClient {
         }
         return data;
       } else {
-        throw ApiException(data['message'] ?? 'Login gagal. Periksa username dan password.', response.statusCode);
+        String msg = (data['message'] ?? '').toString();
+        if (msg.isEmpty || msg.toLowerCase() == 'invalid credentials') {
+          msg = 'Username, NISN, atau kata sandi tidak sesuai.';
+        } else if (msg.toLowerCase().contains('too many requests')) {
+          msg = 'Terlalu banyak percobaan login. Silakan tunggu beberapa saat.';
+        }
+        throw ApiException(msg, response.statusCode);
       }
     } on SocketException {
       throw ApiException('Tidak dapat terhubung ke server CBT. Periksa alamat IP atau jaringan Wi-Fi.');

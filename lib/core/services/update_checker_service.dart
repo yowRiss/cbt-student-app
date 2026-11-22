@@ -436,10 +436,43 @@ class UpdateCheckerService {
         ),
       );
     } else if (manualCheck) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aplikasi Anda sudah versi terbaru (v${AppConstants.appVersion}).'),
-          backgroundColor: Color(0xFF059669),
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Color(0xFF059669)),
+              SizedBox(width: 10),
+              Text('Versi Terbaru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Aplikasi CBT Siswa sudah dalam versi paling baru (v${AppConstants.appVersion}).',
+                style: TextStyle(fontSize: 13, color: Color(0xFF334155)),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Tidak ada pembaruan yang diperlukan saat ini.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F172A),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Tutup'),
+            ),
+          ],
         ),
       );
     }

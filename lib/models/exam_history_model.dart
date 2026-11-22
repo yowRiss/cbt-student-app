@@ -62,8 +62,10 @@ class ExamHistoryModel {
       parsedScore = double.tryParse(json['multiple_choice_score'].toString());
     }
 
+    final bool essayGraded = json['essay_graded'] == true;
+
     bool? isPassed;
-    if (parsedScore != null) {
+    if (parsedScore != null && essayGraded) {
       isPassed = parsedScore >= passingScore;
     }
 

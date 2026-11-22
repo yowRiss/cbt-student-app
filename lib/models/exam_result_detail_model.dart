@@ -18,6 +18,7 @@ class ExamResultDetailModel {
   final String essayStatus;
   final bool pendingManualGrading;
   final String passFail;
+  final bool? passedBool;
   final bool showResult;
   final int violationCount;
 
@@ -41,6 +42,7 @@ class ExamResultDetailModel {
     this.essayStatus = 'graded',
     this.pendingManualGrading = false,
     this.passFail = 'passed',
+    this.passedBool,
     this.showResult = true,
     this.violationCount = 0,
   });
@@ -62,6 +64,23 @@ class ExamResultDetailModel {
 
     final showRes = reviewRules['show_result_after_submission'] != false && json['show_result'] != false;
 
+    final passFailData = json['pass_fail'];
+    String passFailStatus = 'passed';
+    bool? parsedPassed;
+    if (passFailData is Map) {
+      passFailStatus = (passFailData['status'] ?? 'passed').toString();
+      if (passFailData['passed'] is bool) {
+        parsedPassed = passFailData['passed'] as bool;
+      }
+    } else if (passFailData is String) {
+      passFailStatus = passFailData;
+      parsedPassed = passFailData.toLowerCase() == 'passed';
+    }
+
+    final bool isEssayPending = score['pending_manual_grading'] == true ||
+        score['essay_graded'] == false ||
+        passFailStatus == 'pending';
+
     return ExamResultDetailModel(
       sessionToken: (session['token'] ?? '').toString(),
       examId: exam['id'] ?? session['exam_id'],
@@ -80,12 +99,14 @@ class ExamResultDetailModel {
       essayMax: showRes && score['essay_max'] != null ? double.tryParse(score['essay_max'].toString()) : null,
       essayGraded: score['essay_graded'] == true,
       essayStatus: (score['essay_status'] ?? 'graded').toString(),
-      pendingManualGrading: score['pending_manual_grading'] == true,
-      passFail: (json['pass_fail'] ?? 'passed').toString(),
+      pendingManualGrading: isEssayPending,
+      passFail: passFailStatus,
+      passedBool: isEssayPending ? null : parsedPassed,
       showResult: showRes,
       violationCount: int.tryParse(session['violation_count']?.toString() ?? '0') ?? 0,
     );
   }
 
-  bool get isPassed => passFail.toLowerCase() == 'passed';
+  bool get isPassed => passedBool == true;
+  bool get isPendingGrading => pendingManualGrading || !essayGraded || passFail.toLowerCase() == 'pending';
 }

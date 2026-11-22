@@ -146,7 +146,47 @@ class _ExamResultDetailScreenState extends State<ExamResultDetailScreen> {
 
     final res = _result!;
     final bool hasScore = res.showResult && res.percentage != null;
+    final bool isPending = res.isPendingGrading;
     final bool isPassed = res.isPassed;
+
+    Color cardBg;
+    Color cardBorder;
+    Color titleColor;
+    Color scoreColor;
+    Color badgeBg;
+    String badgeText;
+
+    if (isPending) {
+      cardBg = const Color(0xFFFFFBEB);
+      cardBorder = const Color(0xFFFDE68A);
+      titleColor = const Color(0xFF92400E);
+      scoreColor = const Color(0xFFB45309);
+      badgeBg = const Color(0xFFD97706);
+      badgeText = 'MENUNGGU KOREKSI ESAI';
+    } else if (hasScore) {
+      if (isPassed) {
+        cardBg = const Color(0xFFECFDF5);
+        cardBorder = const Color(0xFFA7F3D0);
+        titleColor = const Color(0xFF065F46);
+        scoreColor = const Color(0xFF047857);
+        badgeBg = const Color(0xFF059669);
+        badgeText = 'LULUS (MEMENUHI KKM)';
+      } else {
+        cardBg = const Color(0xFFFEF2F2);
+        cardBorder = const Color(0xFFFECACA);
+        titleColor = const Color(0xFF991B1B);
+        scoreColor = const Color(0xFFDC2626);
+        badgeBg = const Color(0xFFDC2626);
+        badgeText = 'BELUM MEMENUHI KKM';
+      }
+    } else {
+      cardBg = const Color(0xFFF8FAFC);
+      cardBorder = const Color(0xFFE2E8F0);
+      titleColor = const Color(0xFF64748B);
+      scoreColor = const Color(0xFF0F172A);
+      badgeBg = const Color(0xFF475569);
+      badgeText = 'NILAI DISEMBUNYIKAN GURU';
+    }
 
     return RefreshIndicator(
       onRefresh: _fetchResult,
@@ -216,28 +256,22 @@ class _ExamResultDetailScreenState extends State<ExamResultDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             decoration: BoxDecoration(
-              color: hasScore
-                  ? (isPassed ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2))
-                  : const Color(0xFFF8FAFC),
+              color: cardBg,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: hasScore
-                    ? (isPassed ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA))
-                    : const Color(0xFFE2E8F0),
+                color: cardBorder,
                 width: 1.5,
               ),
             ),
             child: Column(
               children: [
                 Text(
-                  res.pendingManualGrading ? 'NILAI SEMENTARA' : 'SKOR NILAI AKHIR',
+                  isPending ? 'NILAI SEMENTARA' : 'SKOR NILAI AKHIR',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.2,
-                    color: hasScore
-                        ? (isPassed ? const Color(0xFF065F46) : const Color(0xFF991B1B))
-                        : const Color(0xFF64748B),
+                    color: titleColor,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -251,9 +285,7 @@ class _ExamResultDetailScreenState extends State<ExamResultDetailScreen> {
                       style: TextStyle(
                         fontSize: 56,
                         fontWeight: FontWeight.w900,
-                        color: hasScore
-                            ? (isPassed ? const Color(0xFF047857) : const Color(0xFFDC2626))
-                            : const Color(0xFF0F172A),
+                        color: scoreColor,
                         letterSpacing: -1,
                       ),
                     ),
@@ -263,7 +295,7 @@ class _ExamResultDetailScreenState extends State<ExamResultDetailScreen> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isPassed ? const Color(0xFF059669) : const Color(0xFFEF4444),
+                          color: scoreColor,
                         ),
                       ),
                   ],
@@ -272,15 +304,11 @@ class _ExamResultDetailScreenState extends State<ExamResultDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                   decoration: BoxDecoration(
-                    color: hasScore
-                        ? (isPassed ? const Color(0xFF059669) : const Color(0xFFDC2626))
-                        : const Color(0xFF475569),
+                    color: badgeBg,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    hasScore
-                        ? (isPassed ? 'LULUS (MEMENUHI KKM)' : 'BELUM MEMENUHI KKM')
-                        : 'NILAI DISEMBUNYIKAN GURU',
+                    badgeText,
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -289,10 +317,10 @@ class _ExamResultDetailScreenState extends State<ExamResultDetailScreen> {
                     ),
                   ),
                 ),
-                if (res.pendingManualGrading) ...[
+                if (isPending) ...[
                   const SizedBox(height: 12),
                   const Text(
-                    '* Nilai akhir masih menunggu penilaian koreksi soal esai dari guru.',
+                    '* Nilai akhir kelulusan (KKM) akan dihitung setelah guru selesai mengoreksi soal esai.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11, color: Color(0xFFB45309), fontStyle: FontStyle.italic),
                   ),

@@ -28,7 +28,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
 
   bool _isLoading = true;
   String? _errorMessage;
-  bool _isLoadingOverlayShowing = false;
+  String? _actionLoadingMessage;
 
   // Search filter
   String _searchQuery = '';
@@ -170,36 +170,18 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
   }
 
   void _showLoadingOverlay(String message) {
-    _isLoadingOverlayShowing = true;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Center(
-        child: Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF0F172A)),
-                const SizedBox(width: 16),
-                Text(message, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ).then((_) {
-      _isLoadingOverlayShowing = false;
-    });
+    if (mounted) {
+      setState(() {
+        _actionLoadingMessage = message;
+      });
+    }
   }
 
   void _hideLoadingOverlay() {
-    if (_isLoadingOverlayShowing && mounted && Navigator.canPop(context)) {
-      _isLoadingOverlayShowing = false;
-      Navigator.pop(context);
+    if (mounted && _actionLoadingMessage != null) {
+      setState(() {
+        _actionLoadingMessage = null;
+      });
     }
   }
 
@@ -397,7 +379,56 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
           const SizedBox(width: 4),
         ],
       ),
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          _buildBody(),
+          if (_actionLoadingMessage != null)
+            Container(
+              color: Colors.black.withValues(alpha: 0.5),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Flexible(
+                        child: Text(
+                          _actionLoadingMessage!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -799,6 +830,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
 
   Widget _buildHistoryCard(ExamHistoryModel history) {
     final bool hasScore = history.showResult && history.score != null;
+    final bool isPendingGrading = !history.essayGraded || history.passed == null;
     final bool isPassed = history.passed == true;
 
     return Container(
@@ -853,12 +885,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: hasScore
-                  ? (isPassed ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2))
+                  ? (isPendingGrading
+                      ? const Color(0xFFFFFBEB)
+                      : (isPassed ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2)))
                   : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: hasScore
-                    ? (isPassed ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA))
+                    ? (isPendingGrading
+                        ? const Color(0xFFFDE68A)
+                        : (isPassed ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA)))
                     : const Color(0xFFE2E8F0),
               ),
             ),
@@ -869,20 +905,28 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      hasScore ? (isPassed ? 'LULUS (KKM: ${history.passingScore})' : 'BELUM MEMENUHI KKM') : 'NILAI HASIL UJIAN',
+                      hasScore
+                          ? (isPendingGrading
+                              ? 'MENUNGGU KOREKSI ESAI'
+                              : (isPassed ? 'LULUS (KKM: ${history.passingScore})' : 'BELUM MEMENUHI KKM'))
+                          : 'NILAI HASIL UJIAN',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
                         color: hasScore
-                            ? (isPassed ? const Color(0xFF065F46) : const Color(0xFF991B1B))
+                            ? (isPendingGrading
+                                ? const Color(0xFFB45309)
+                                : (isPassed ? const Color(0xFF065F46) : const Color(0xFF991B1B)))
                             : const Color(0xFF64748B),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      history.essayGraded
-                          ? 'Semua jawaban dinilai'
-                          : (history.essayScore != null ? 'Menunggu koreksi esai' : 'Pilihan Ganda & Esai'),
+                      isPendingGrading
+                          ? 'Nilai akhir menunggu pemeriksaan guru'
+                          : (history.essayGraded
+                              ? 'Semua jawaban dinilai'
+                              : 'Pilihan Ganda'),
                       style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                     ),
                   ],
@@ -893,7 +937,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with SingleTicker
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                     color: hasScore
-                        ? (isPassed ? const Color(0xFF047857) : const Color(0xFFDC2626))
+                        ? (isPendingGrading
+                            ? const Color(0xFFD97706)
+                            : (isPassed ? const Color(0xFF047857) : const Color(0xFFDC2626)))
                         : const Color(0xFF0F172A),
                   ),
                 ),
