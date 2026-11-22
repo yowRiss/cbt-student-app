@@ -55,12 +55,15 @@ jobs:
         run: flutter pub get
 
       - name: 🔐 Setup Android Keystore from Secret
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          if [ -n "$KEYSTORE_BASE64" ]; then
             echo "Menggunakan keystore dari GitHub Secrets..."
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/cbt-release.jks
+            echo "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > android/app/cbt-release.jks
+            ls -la android/app/cbt-release.jks
           else
-            echo "Menggunakan keystore lokal yang tersedia di runner..."
+            echo "Peringatan: KEYSTORE_BASE64 tidak ditemukan di Secrets!"
           fi
 
       - name: 🛠️ Build Universal APK
